@@ -1,0 +1,155 @@
+---
+title: "Niche_breadth"
+author: "Jipeng Luo"
+date: "2026-11-17"
+output: pdf_document
+---
+
+## Community-level niche breadth analysis
+
+# Load packages
+
+```{r}
+library(spaa)
+library(ggplot2)
+```
+
+# Import taxonomic community data
+
+```{r}
+design <- read.csv("./Niche_breadth/Data/Metadata.csv", header = T, row.names = 1)
+head(design)
+comm01 <- read.csv("./Niche_breadth/Data/RPKM.species.abundance.csv", header = T, row.names = 1)
+comm <- t(comm01[ ,rownames(design)])
+comm <- comm[,colSums(comm) > 20]
+```
+
+
+# Calculate niche breadth and perform two-group statistical analysis
+
+```{r}
+# Calculate niche breadth for each OTU by group
+b_values_by_group <- lapply(names(table(design$Irrigation)), function(g) {
+  # Filter the samples in the current group
+  samples <- rownames(design)[design$Irrigation == g]
+  comm_subset <- comm[samples, , drop = FALSE]
+  # Filter the OTUs present in the current group
+  otus_present <- colSums(comm_subset) > 0
+  comm_subset <- comm_subset[, otus_present, drop = FALSE]
+  # calculate B-values
+  b_vals <- niche.width(comm_subset, method = "levins")
+  # Create a data frame containing group names, OTU names, and B values
+  data.frame(Group = g, OTU = names(b_vals), B_value = as.numeric(b_vals))
+})
+
+# Merge niche breadth value and group value
+b_values_df <- do.call(rbind, b_values_by_group)
+head(b_values_df)
+dim(comm)
+
+# Calculate by Group Bcom
+bcom_by_group <- tapply(b_values_df$B_value, b_values_df$Group, mean)
+bcom_by_group
+
+
+# Statistical test
+head(b_values_df)
+wilcox.test(B_value ~ Group, data = b_values_df)
+```
+
+
+# Plot niche breadth
+
+```{r}
+theme.plot <- theme(axis.title = element_text(colour = "black", size = 15),
+                    axis.text.x = element_text(colour= "black", size= 15, angle= 35, hjust = 1),
+                    axis.text.y = element_text(colour = "black", size = 15),
+                    legend.position = "NULL",
+                    panel.border = element_rect(color="black", size=1),
+                    panel.grid = element_blank(),
+                    plot.title = element_text(hjust = 0.5))
+                    
+p1 <- ggplot(b_values_df, aes(x = Group, y = B_value, fill = Group)) +
+  geom_violin(linewidth = 0.5, size = 0.2, alpha = 0.7) +  
+  geom_boxplot(width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2", "#BB2BA0")) +
+  labs(x = "", y = "Niche breadths (Bcom)", title = "Taxonomy") +
+  theme_bw() + 
+  theme.plot + 
+  scale_y_continuous(limits = c(0, 48), breaks = seq(0, 48, 10))
+
+p1
+ggsave("./Niche_breadth/Output/Taxonomic_Niche_Breadth.pdf", p1, width = 3.5, height = 5)
+```
+
+
+
+# Import functional community data
+
+```{r}
+design <- read.csv("./Niche_breadth/Data/Metadata.csv", header = T, row.names = 1)
+head(design)
+comm01 <- read.csv("./Niche_breadth/Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+comm <- t(comm01[ ,rownames(design)])
+comm <- comm[,colSums(comm) > 20]
+```
+
+
+# Calculate niche breadth and perform two-group statistical analysis
+
+```{r}
+# Calculate niche breadth for each OTU by group
+b_values_by_group <- lapply(names(table(design$Irrigation)), function(g) {
+  # Filter the samples in the current group
+  samples <- rownames(design)[design$Irrigation == g]
+  comm_subset <- comm[samples, , drop = FALSE]
+  # Filter the OTUs present in the current group
+  otus_present <- colSums(comm_subset) > 0
+  comm_subset <- comm_subset[, otus_present, drop = FALSE]
+  # calculate B-values
+  b_vals <- niche.width(comm_subset, method = "levins")
+  # Create a data frame containing group names, OTU names, and B values
+  data.frame(Group = g, OTU = names(b_vals), B_value = as.numeric(b_vals))
+})
+
+# Merge niche breadth value and group value
+b_values_df <- do.call(rbind, b_values_by_group)
+head(b_values_df)
+dim(comm)
+
+# Calculate by Group Bcom
+bcom_by_group <- tapply(b_values_df$B_value, b_values_df$Group, mean)
+bcom_by_group
+
+
+# Statistical test
+head(b_values_df)
+wilcox.test(B_value ~ Group, data = b_values_df)
+```
+
+
+# Plot niche breadth
+
+```{r}
+theme.plot <- theme(axis.title = element_text(colour = "black", size = 15),
+                    axis.text.x = element_text(colour= "black", size= 15, angle= 35, hjust = 1),
+                    axis.text.y = element_text(colour = "black", size = 15),
+                    legend.position = "NULL",
+                    panel.border = element_rect(color="black", size=1),
+                    panel.grid = element_blank(),
+                    plot.title = element_text(hjust = 0.5))
+                    
+p2 <- ggplot(b_values_df, aes(x = Group, y = B_value, fill = Group)) +
+  geom_violin(linewidth = 0.5, size = 0.2, alpha = 0.7) +  
+  geom_boxplot(width= 0.07, fill= "white") +
+  scale_fill_manual(values = c("#4169B2", "#BB2BA0")) +
+  labs(x = "", y = "Niche breadths (Bcom)", title = "Function") +
+  theme_bw() + 
+  theme.plot + 
+  scale_y_continuous(limits = c(0, 48), breaks = seq(0, 48, 10))
+
+p2
+ggsave("./Niche_breadth/Output/Functional_Niche_Breadth.pdf", p2, width = 3.5, height = 5)
+```
+
+

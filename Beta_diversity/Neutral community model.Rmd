@@ -1,0 +1,308 @@
+---
+title: "Neutral community model (NCM)"
+author: "Jipeng Luo"
+date: "2026-11-17"
+output: pdf_document
+---
+
+
+## Neutral community model of taxonomic and functional communities
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+require(phyloseq)
+#remotes::install_github("DanielSprockett/reltools")
+require(reltools)
+require(ggplot2)
+library(minpack.lm)
+library(Hmisc)
+library(stats4)
+library(vegan)
+library(dplyr)
+library(tidyr)
+library(plyr)
+library(MicEco)
+library(ggplot2)
+```
+
+# Import taxonomic community data
+
+```{r}
+spp <- read.csv("./Neutral_community_model/Data/Species.count.csv", header = T, row.names = 1)
+design <- read.csv("./Neutral_community_model/Data/Metadata.csv", header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+spp.irr1 <- spp[,rownames(design.irr)]
+spp.unirr1 <- spp[,rownames(design.unirr)]
+
+# Remove the extremely low taxa or genes that may occur accidentally
+spp.irr <- spp.irr1[rowSums(spp.irr1) > 20,]
+spp.unirr <- spp.unirr1[rowSums(spp.unirr1) > 20,]
+```
+
+
+# Perform Neutral Community Model analysis in Irrigated fields
+
+```{r}
+spp.out <- fit_sncm(t(spp.irr), pool = t(spp), taxon = NULL)
+otu <- spp.out$predictions
+fit <- spp.out$fitstats
+fit
+m <- fit[1]   # species immigration rate, m
+r2 <- fit[4]  # the explained variation in the NCM
+```
+
+
+```{r}
+### otu, an OTU-table with taxa as columns and samples as rows
+res = neutral.fit(t(spp.irr))
+
+# Classify the taxa on the basis of their distribution
+out2 = mutate(otu, group = NA)         
+out2$group[otu[,2]<otu[,4]]="lower"    # below threshold
+out2$group[otu[,2]>otu[,5]]="upper"    # above threshold, deterministically distributed
+out2$group[(otu[,2]>=otu[,4])&(otu[,2]<=otu[,5])]="middle"  # neutrally distributed
+
+out2$group <- factor(out2$group, levels = c("lower", "middle", "upper"))
+mycols<-c("orange", "gray60", "#008B8B")
+
+theme_set(theme_bw())
+p1 = ggplot() +
+     geom_point(data = out2, aes(x=log(p), y=freq, color= group),size = 1.7)+
+        scale_colour_manual(values = mycols) +
+        annotate("text",x= -7, y=0.20,label=paste("m = ", round(m,3), sep=''), size=5)+
+        annotate("text",x= -7, y=0.25,label=paste("R2 = ", round(r2,3), sep=''), size=5)
+p1
+
+p2 <- p1 +
+  geom_line(data = otu, aes(x=log(p),y=freq.pred),size = 1,linetype = 1, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.lwr),size = 0.8,linetype = 2, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.upr),size = 0.8,linetype = 2, color ="blue") +
+  xlab("log10(mean relative abundance)") + ylab("Occurrence frequency in irrigated")
+p2
+
+plot_theme = theme(panel.background=element_blank(),
+                   panel.grid=element_blank(),
+                   axis.line.x=element_line(size=.5, colour="black"),
+                   axis.line.y=element_line(size=.5, colour="black"),
+                   axis.ticks=element_line(color="black"),
+                   axis.text=element_text(color="black", size=15),
+                   legend.position="none",
+                   legend.background=element_blank(),
+                   legend.key=element_blank(),
+                   legend.text= element_text(size=15),
+                   text=element_text(family="sans", size=15))
+
+p3 = p2 + plot_theme
+p3
+
+ggsave("./Neutral_community_model/Output/Neutral model of irrigated taxonomic community.pdf", p3, width = 6, height = 5)
+```
+
+
+# Non-irrigated fields
+
+```{r}
+spp.out <- fit_sncm(t(spp.unirr), pool = t(spp), taxon = NULL)
+otu <- spp.out$predictions
+fit <- spp.out$fitstats
+fit
+m <- fit[1]      # species immigration rate, m
+r2 <- fit[4]     # the explained variation in the NCM
+```
+
+
+```{r}
+### otu, an OTU-table with taxa as columns and samples as rows
+res = neutral.fit(t(spp.unirr))
+
+# Classify the taxa on the basis of their distribution
+out2 = mutate(otu, group = NA)  
+out2$group[otu[,2]<otu[,4]]="lower"    
+out2$group[otu[,2]>otu[,5]]="upper"    
+out2$group[(otu[,2]>=otu[,4])&(otu[,2]<=otu[,5])]="middle"
+
+out2$group <- factor(out2$group, levels = c("lower", "middle", "upper"))
+mycols<-c("orange", "gray60", "#008B8B")
+
+theme_set(theme_bw())
+p1 = ggplot() +
+     geom_point(data = out2, aes(x=log(p), y=freq, color= group),size = 1.7)+
+        scale_colour_manual(values = mycols) +
+        annotate("text",x= -7, y=0.20,label=paste("m = ", round(m,3), sep=''), size=5)+
+        annotate("text",x= -7, y=0.25,label=paste("R2 = ", round(r2,3), sep=''), size=5)
+p1
+
+p2 <- p1 +
+  geom_line(data = otu, aes(x=log(p),y=freq.pred),size = 1,linetype = 1, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.lwr),size = 0.8,linetype = 2, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.upr),size = 0.8,linetype = 2, color ="blue") +
+  xlab("log10(mean relative abundance)") + ylab("Occurrence frequency in irrigated")
+p2
+
+plot_theme = theme(panel.background=element_blank(),
+                   panel.grid=element_blank(),
+                   axis.line.x=element_line(size=.5, colour="black"),
+                   axis.line.y=element_line(size=.5, colour="black"),
+                   axis.ticks=element_line(color="black"),
+                   axis.text=element_text(color="black", size=15),
+                   legend.position="none",
+                   legend.background=element_blank(),
+                   legend.key=element_blank(),
+                   legend.text= element_text(size=15),
+                   text=element_text(family="sans", size=15))
+
+p3 = p2 + plot_theme
+p3
+
+ggsave("./Neutral_community_model/Output/Neutral model of non-irrigated taxonomic community.pdf", p3, width = 6, height = 5)
+```
+
+
+
+#===========================Functional community===========================================
+# Import functional community data
+
+```{r}
+spp <- read.csv("./Neutral_community_model/Data/KOs.count.csv", header = T, row.names = 1)
+design <- read.csv("./Neutral_community_model/Data/Metadata.csv", header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+spp.irr1 <- spp[,rownames(design.irr)]
+spp.unirr1 <- spp[,rownames(design.unirr)]
+
+# Remove the extremely low taxa or genes that may occur accidentally;
+# Due to the enormous number of genes—with gene abundance in a single sample reaching as high as 170,000—the threshold was set at 100
+spp.irr <- spp.irr1[rowSums(spp.irr1) > 100,]
+spp.unirr <- spp.unirr1[rowSums(spp.unirr1) > 100,]
+```
+
+
+# Perform Neutral Community Model analysis in Irrigated fields
+
+```{r}
+spp.out <- fit_sncm(t(spp.irr), pool = t(spp), taxon = NULL)
+otu <- spp.out$predictions
+fit <- spp.out$fitstats
+fit
+m <- fit[1]   # species immigration rate, m
+r2 <- fit[4]  # the explained variation in the NCM
+```
+
+
+```{r}
+### otu, an OTU-table with taxa as columns and samples as rows
+res = neutral.fit(t(spp.irr))
+
+# Classify the taxa on the basis of their distribution
+out2 = mutate(otu, group = NA)         
+out2$group[otu[,2]<otu[,4]]="lower"    # below threshold
+out2$group[otu[,2]>otu[,5]]="upper"    # above threshold, deterministically distributed
+out2$group[(otu[,2]>=otu[,4])&(otu[,2]<=otu[,5])]="middle"  # neutrally distributed
+
+out2$group <- factor(out2$group, levels = c("lower", "middle", "upper"))
+mycols<-c("orange", "gray60", "#008B8B")
+
+theme_set(theme_bw())
+p4 = ggplot() +
+     geom_point(data = out2, aes(x=log(p), y=freq, color= group),size = 1.7)+
+        scale_colour_manual(values = mycols) +
+        annotate("text",x= -7, y=0.20,label=paste("m = ", round(m,3), sep=''), size=5)+
+        annotate("text",x= -7, y=0.25,label=paste("R2 = ", round(r2,3), sep=''), size=5)
+p4
+
+p5 <- p4 +
+  geom_line(data = otu, aes(x=log(p),y=freq.pred),size = 1,linetype = 1, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.lwr),size = 0.8,linetype = 2, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.upr),size = 0.8,linetype = 2, color ="blue") +
+  xlab("log10(mean relative abundance)") + ylab("Occurrence frequency in irrigated")
+p5
+
+plot_theme = theme(panel.background=element_blank(),
+                   panel.grid=element_blank(),
+                   axis.line.x=element_line(size=.5, colour="black"),
+                   axis.line.y=element_line(size=.5, colour="black"),
+                   axis.ticks=element_line(color="black"),
+                   axis.text=element_text(color="black", size=15),
+                   legend.position="none",
+                   legend.background=element_blank(),
+                   legend.key=element_blank(),
+                   legend.text= element_text(size=15),
+                   text=element_text(family="sans", size=15))
+
+p6 = p5 + plot_theme
+p6
+
+ggsave("./Neutral_community_model/Output/Neutral model of irrigated functional community.pdf", p6, width = 6, height = 5)
+```
+
+
+# Non-irrigated fields
+
+```{r}
+spp.out <- fit_sncm(t(spp.unirr), pool = t(spp), taxon = NULL)
+otu <- spp.out$predictions
+fit <- spp.out$fitstats
+fit
+m <- fit[1]      # species immigration rate, m
+r2 <- fit[4]     # the explained variation in the NCM
+```
+
+
+```{r}
+### otu, an OTU-table with taxa as columns and samples as rows
+res = neutral.fit(t(spp.unirr))
+
+# Classify the taxa on the basis of their distribution
+out2 = mutate(otu, group = NA)  
+out2$group[otu[,2]<otu[,4]]="lower"    
+out2$group[otu[,2]>otu[,5]]="upper"    
+out2$group[(otu[,2]>=otu[,4])&(otu[,2]<=otu[,5])]="middle"
+
+out2$group <- factor(out2$group, levels = c("lower", "middle", "upper"))
+mycols<-c("orange", "gray60", "#008B8B")
+
+theme_set(theme_bw())
+p7 = ggplot() +
+     geom_point(data = out2, aes(x=log(p), y=freq, color= group),size = 1.7)+
+        scale_colour_manual(values = mycols) +
+        annotate("text",x= -7, y=0.20,label=paste("m = ", round(m,3), sep=''), size=5)+
+        annotate("text",x= -7, y=0.25,label=paste("R2 = ", round(r2,3), sep=''), size=5)
+p7
+
+p8 <- p7 +
+  geom_line(data = otu, aes(x=log(p),y=freq.pred),size = 1,linetype = 1, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.lwr),size = 0.8,linetype = 2, color ="blue") +
+  geom_line(data = otu, aes(x=log(p),y=pred.upr),size = 0.8,linetype = 2, color ="blue") +
+  xlab("log10(mean relative abundance)") + ylab("Occurrence frequency in irrigated")
+p8
+
+plot_theme = theme(panel.background=element_blank(),
+                   panel.grid=element_blank(),
+                   axis.line.x=element_line(size=.5, colour="black"),
+                   axis.line.y=element_line(size=.5, colour="black"),
+                   axis.ticks=element_line(color="black"),
+                   axis.text=element_text(color="black", size=15),
+                   legend.position="none",
+                   legend.background=element_blank(),
+                   legend.key=element_blank(),
+                   legend.text= element_text(size=15),
+                   text=element_text(family="sans", size=15))
+
+p9 = p8 + plot_theme
+p9
+
+ggsave("./Neutral_community_model/Output/Neutral model of non-irrigated functional community.pdf", p9, width = 6, height = 5)
+```
+

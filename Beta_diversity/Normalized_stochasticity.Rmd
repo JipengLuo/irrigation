@@ -1,0 +1,139 @@
+---
+title: "Normalized_stochasticity"
+author: "Jipeng Luo"
+date: "2026-11-17"
+output: pdf_document
+---
+
+
+## Determine the degree of stochasticity in irrigated and non-irrigated fields
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+library(NST)
+library(ggplot2)
+library(dplyr)
+```
+
+
+# Import taxonomic community data
+
+```{r}
+comm1 <- read.csv("./Normalized_stochasticity/Data/RPKM.species.abundance.csv", header = T, row.names = 1)
+design <- read.csv("./Normalized_stochasticity/Data/Metadata.csv", header = T, row.names = 1)
+design$rowname <- rownames(design)
+
+comm2 <- t(comm1[,rownames(design)])
+comm2[1:5,1:5]
+comm <- comm2[,colSums(comm2)>20]
+bray <- beta.g(comm, dist.method="bray")
+
+# Convert the Bray-Curtis distance matrix into a data frame: the name of Sample 1, the name of Sample 2, and the Bray-Curtis distance between Sample 1 and Sample 2.
+bray.3col = dist.3col(bray) 
+group <- as.data.frame(design$Irrigation)
+rownames(group) <- rownames(design)
+
+# rand = 20：Number of randomizations
+tnst <- tNST(comm=comm2, group=group, rand=20, output.rand=TRUE, nworker=1)
+# write.csv(tnst$index.pair.grp, file = "NST_Species_9353.csv")
+
+# Save all of the generated data
+saveRDS(tnst, file = './Normalized_stochasticity/Output/tnst_RPKM.Taxonomy.rda')
+# ST.tj.ruzicka：Measures the species turnover rate of a community over time, reflecting the extent of community change
+# NST.tj.ruzicka：Assess the contribution of stochastic processes to community changes, on a scale from 0 (deterministic processes dominate) to 1 (stochastic processes dominate).
+# MST.tj.ruzicka：A modified version of NST that provides more robust estimates of randomness
+```
+
+
+# Import Functional community data
+
+```{r}
+comm1 <- read.csv("./Normalized_stochasticity/Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+design <- read.csv("./Normalized_stochasticity/Data/Metadata.csv", header = T, row.names = 1)
+design$rowname <- rownames(design)
+
+comm2 <- t(comm1[,rownames(design)])
+comm2[1:5,1:5]
+comm <- comm2[,colSums(comm2)>0]
+bray <- beta.g(comm, dist.method="bray")
+
+# Convert the Bray-Curtis distance matrix into a data frame: the name of Sample 1, the name of Sample 2, and the Bray-Curtis distance between Sample 1 and Sample 2.
+bray.3col = dist.3col(bray) 
+group <- as.data.frame(design$Irrigation)
+rownames(group) <- rownames(design)
+
+# rand = 20：Number of randomizations
+tnst <- tNST(comm=comm2, group=group, rand=20, output.rand=TRUE, nworker=1)
+# write.csv(tnst$index.pair.grp, file = "NST_Species_9353.csv")
+
+# Save all of the generated data
+saveRDS(tnst, file = './Normalized_stochasticity/Output/tnst_RPKM.Function.rda')
+```
+
+
+# Plot the degree of stochasticity in irrigated and non-irrigated fields
+# Taxonomic communities
+```{r}
+tnst.taxa <- readRDS("./Normalized_stochasticity/Output/tnst_RPKM.Taxonomy.rda")
+range(tnst.taxa$index.pair.grp$NST.ij.ruzicka)
+
+theme_set(theme_bw())
+p1 <- ggplot(data = tnst.taxa$index.pair.grp, aes(x = tnst.taxa$index.pair.grp$group,
+                                                  y = tnst.taxa$index.pair.grp$NST.ij.ruzicka, fill = tnst.taxa$index.pair.grp$group)) +
+  geom_violin(linewidth= 0.5, width= 0.7, size=0.2, alpha= 0.7) +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  scale_fill_manual(values = c("#4169B2", "#BB2BA0")) +
+  labs(x = "", y = "Normalized stochasticity\n(NST)") +
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        panel.grid = element_blank(),
+        legend.position = "none") +
+  scale_y_continuous(limits = c(-0.014, 1.25), breaks = seq(0, 1.25, 0.2)) +
+  annotate("text", x = 1.5, y = 1.25, label = "P < 0.001", size = 6)
+
+p1
+ggsave("./Normalized_stochasticity/Output/Proportion of stochasticity_Taxonomy.pdf", p1, width = 4.2, height = 5)
+
+# Two-group comparisons
+wilcox.test(tnst.taxa$index.pair.grp$NST.ij.ruzicka ~ tnst.taxa$index.pair.grp$group, data = tnst.taxa$index.pair.grp)
+# W = 157318, p-value = 1.697e-08
+```
+
+
+# Functional communities
+
+```{r}
+tnst.ko <- readRDS("./Normalized_stochasticity/Output/tnst_RPKM.Function.rda")
+range(tnst.ko$index.pair.grp$NST.ij.ruzicka)
+
+theme_set(theme_bw())
+p2 <- ggplot(data = tnst.ko$index.pair.grp, aes(x = tnst.ko$index.pair.grp$group,
+                                                y = tnst.ko$index.pair.grp$NST.ij.ruzicka, fill = tnst.ko$index.pair.grp$group)) +
+  geom_violin(linewidth= 0.5, width= 0.7,size=0.2, alpha= 0.7) +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  scale_fill_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = "", y = "Normalized stochasticity/n(NST)") +
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        panel.grid = element_blank(),
+        legend.position = "none") + 
+  scale_y_continuous(limits = c(0, 1.15), breaks = seq(0, 1.15, 0.2))
+
+p2
+ggsave("./Normalized_stochasticity/Output/Proportion of stochasticity_Function.pdf", p2, width = 4.2, height = 5)
+
+# Two-group comparisons
+wilcox.test(tnst.ko$index.pair.grp$NST.ij.ruzicka ~ tnst.ko$index.pair.grp$group, data = tnst.ko$index.pair.grp)
+# W = 216236, p-value = 0.002389
+```
+
+
