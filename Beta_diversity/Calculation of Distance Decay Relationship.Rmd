@@ -1,0 +1,608 @@
+---
+title: "Distance Decay Relationship"
+author: "Jipeng Luo"
+date: "2026-11-13"
+output: pdf_document
+---
+
+
+## Examing Distance Decay Relationship (DDR) between community and environmental distance
+
+# Retrieve and set the working directory
+```{r}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+require("simba")
+require("fossil")
+```
+
+# Import soil properties and metadata
+
+```{r}
+env1 <- read.csv("./Distance_decay_relationships/Data/Soil properties_for_DDR.csv", header = T, row.names = 1)
+design1 <- read.csv("./Distance_decay_relationships/Data/Metadata.csv", header = T, row.names = 1)
+env2 <- env1[rownames(env1) %in% rownames(design1),]
+design <- design1[rownames(env2),]
+env <- env2[1:72,]  # remove the two Nebraska samples
+```
+
+# Choose irrigated and non-irrigated samples
+
+```{r}
+design.irr <- subset(design[1:72,], Irrigation == "irrigated") # remove the two Nebraska samples
+design.unirr <- subset(design[1:72,], Irrigation == "non-irrigated") # remove the two Nebraska samples
+env.irr <- env[rownames(env) %in% rownames(design.irr),]
+env.unirr <- env[rownames(env) %in% rownames(design.unirr),]
+```
+
+
+# Soil physicochemical data used for analysis
+
+```{r}
+env.dat <- as.matrix(env[,c(3:16, 18:29)])
+env.dat.irr <- as.matrix(env.irr[,c(3:16, 18:29)])
+env.dat.unirr <- as.matrix(env.unirr[,c(3:16, 18:29)])
+
+# standardization
+env.scale <- scale(env.dat, center = TRUE, scale = TRUE)
+env.scale.irr <- scale(env.dat.irr, center = TRUE, scale = TRUE)
+env.scale.unirr <- scale(env.dat.unirr, center = TRUE, scale = TRUE)
+```
+
+
+# Conduct PCA
+
+```{r}
+library(vegan)
+pca <- rda(env.scale)
+summary(pca)
+scores <- as.data.frame(scores(pca, choices = 1:13)$sites)
+env.dist <- vegdist(scores, "euclidean") 
+env.dist <- env.dist/max(env.dist)
+env.dist[which(!is.finite(env.dist))] = NA
+
+pca.irr <- rda(env.scale.irr)
+summary(pca.irr)
+scores.irr <- as.data.frame(scores(pca.irr, choices = 1:9)$sites)
+env.dist.irr <- vegdist(scores.irr, "euclidean")
+env.dist.irr <- env.dist.irr/max(env.dist.irr)
+env.dist.irr[which(!is.finite(env.dist.irr))] = NA
+
+pca.unirr <- rda(env.scale.unirr)
+summary(pca.unirr)
+scores.unirr <- as.data.frame(scores(pca.unirr, choices = 1:12)$sites)
+env.dist.unirr <- vegdist(scores.unirr, "euclidean")
+env.dist.unirr <- env.dist.unirr/max(env.dist.unirr)
+env.dist.unirr[which(!is.finite(env.dist.unirr))] = NA
+```
+
+# Taxonomic profiles in irrigated and unirrigated farms
+
+```{r}
+com1 <- read.csv("./Distance_decay_relationships/Data/RPKM.species.abundance.csv", header = T, row.names = 1)
+com <- com1[,rownames(env.dat)]
+com.irr <- com1[,rownames(env.dat.irr)]
+com.unirr <- com1[,rownames(env.dat.unirr)]
+
+bray.dist <- 1 - vegdist(t(com), method = "bray")
+bray.dist.irr <- 1 - vegdist(t(com.irr), method = "bray")
+bray.dist.unirr <- 1 - vegdist(t(com.unirr), method = "bray")
+```
+
+# Regression between Bray-Curtis and environmental distance
+
+```{r}
+# Overall model
+DD.env <- lm(bray.dist ~ env.dist)
+summary(DD.env, correlation = TRUE) # r2=0.185, P< 2.2e-16, slope = -0.311
+
+# non-irrigated samples
+DD.env.unirr <- lm(bray.dist.unirr ~ env.dist.unirr)
+summary(DD.env.unirr, correlation = TRUE) # r2=0.166, P< 2.2e-16, slope = -0.244
+
+# irrigated samples
+DD.env.irr <- lm(bray.dist.irr ~ env.dist.irr)
+summary(DD.env.irr, correlation = TRUE) # r2=0.060, P=0.0002, slope = -0.187
+```
+
+
+# Plot DDR of overall model
+
+```{r}
+clr <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+#png(filename=file, width=5, height=5, units="in", res=600, pointsize=10)
+#par(mfrow=c(2, 2), mar = c(5,5,3,1), oma =c(0,0,4,0))
+
+par(mfrow=c(1, 1), mar = c(5,5,3,1), oma =c(0,0,4,0))
+
+# Make Plot for total community (geo)
+slope1 <- round(coefficients(DD.env)[2], 3)
+int1 <- round(coefficients(DD.env)[1], 3)
+p <- round(summary(DD.env)$coefficients[8],3)
+colors <- densCols(env.dist, bray.dist, colramp=clr)
+plot(env.dist, bray.dist, ylab="Taxonomic similarity", pch=20,
+     xlab="Environmental distance", col = colors, cex=1.4, cex.lab=1.3)
+title(paste("Total: slope = ", slope1, "\n R2=0.185, p < 0.001"), line = 1, cex=1)
+abline(DD.env, col = "black", lwd=3.5)
+```
+
+
+# Plot DDR of irrigated and non-irrigated fields
+
+```{r}
+clr <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+par(mfrow=c(1, 2), mar = c(5,5,3,1), oma =c(3,0,3,0))
+
+
+# Make Plot for unirrigated (env)
+slope2 <- round(coefficients(DD.env.unirr)[2], 3)
+int2 <- round(coefficients(DD.env.unirr)[1], 3)
+p <- round(summary(DD.env.unirr)$coefficients[8], 3)
+colors <- densCols(env.dist.unirr, bray.dist.unirr, colramp=clr)
+plot(env.dist.unirr, bray.dist.unirr, ylab="Taxonomic similarity", pch=20, xlim = c(0, 1),
+     xlab="Environmental distance", col = colors, cex=1.7, cex.lab=1.2)
+title(paste("Unirrigated: slope = ", slope2, "\n R2=0.166, p < 0.001"), line = 1, cex=1)
+abline(DD.env.unirr, col = "black", lwd=3)
+
+
+
+# Make Plot for irrigated (env)
+slope3 <- round(coefficients(DD.env.irr)[2], 3)
+int3 <- round(coefficients(DD.env.irr)[1], 3)
+p <- round(summary(DD.env.irr)$coefficients[8], 3)
+colors <- densCols(env.dist.irr, bray.dist.irr, colramp=clr)
+plot(env.dist.irr, bray.dist.irr, ylab="Taxonomic similarity", pch=20,
+     xlab="Environmental distance", col = colors, cex=1.8, cex.lab=1.2)
+title(paste("Irrigated: slope = ", slope3, "\n R2=0.060, p < 0.001"), line = 1, cex=1)
+abline(DD.env.irr, col = "black", lwd=3)
+
+# export plots (width = 9 cm, height = 8.5 cm)
+```
+
+
+# tested whether differences in slopes and intercepts of DDRs
+
+```{r}
+# tested whether differences in slopes and intercepts of
+# DDRs were statistically significant using a permutation-based
+# linear regression approach
+# Add X-Axis Label to Plot
+
+a.dd <- 'y'
+
+if(a.dd == 'y'){
+  clr <- colorRampPalette(c("#00007F", "blue", "#007FFF",
+                            "cyan", "#7FFF7F", "yellow",
+                            "#FF7F00", "red", "#7F0000"))
+
+  png("DDR_environment_taxonomic.png", width = 3200, height = 1600, res = 300)
+  
+  par(mfrow=c(1, 2), mar=c(5,5,3,1), oma=c(3,0,3,0))
+
+  # Make Plot for unirrigated (env)
+  slope2 <- round(coefficients(DD.env.unirr)[2], 3)
+  int2 <- round(coefficients(DD.env.unirr)[1], 3)
+  p <- round(summary(DD.env.unirr)$coefficients[8], 3)
+
+  colors <- densCols(env.dist.unirr, bray.dist.unirr, colramp=clr)
+
+  plot(env.dist.unirr, bray.dist.unirr,
+       ylab="Taxonomic similarity", pch=20,
+       xlim=c(0, 1),
+       xlab="Environmental distance",
+       col=colors, cex=1.7, cex.lab=1.2)
+
+  title(paste("Unirrigated: slope = ", slope2,
+              "\n R2=0.166, p < 0.001"),
+        line=1, cex=1)
+
+  abline(DD.env.unirr, col="black", lwd=3)
+
+  # Make Plot for irrigated (env)
+  slope3 <- round(coefficients(DD.env.irr)[2], 3)
+  int3 <- round(coefficients(DD.env.irr)[1], 3)
+  p <- round(summary(DD.env.irr)$coefficients[8], 3)
+
+  colors <- densCols(env.dist.irr, bray.dist.irr, colramp=clr)
+
+  plot(env.dist.irr, bray.dist.irr,
+       ylab="Taxonomic similarity", pch=20,
+       xlab="Environmental distance",
+       col=colors, cex=1.8, cex.lab=1.2)
+
+  title(paste("Irrigated: slope = ", slope3,
+              "\n R2=0.060, p < 0.001"),
+        line=1, cex=1)
+
+  abline(DD.env.irr, col="black", lwd=3)
+
+  # Statistical comparisons
+  d1 <- diffslope(env.dist.unirr, bray.dist.unirr, env.dist.irr, bray.dist.irr, ic=TRUE, permutations=1000)
+
+  d3 <- diffic(env.dist.unirr, bray.dist.unirr, env.dist.irr, bray.dist.irr, resc.y=FALSE, permutations=1000)
+
+  Mtitle <- paste(
+    "Bray-Curtis\n",
+    round(100 * abs((slope2-slope3) /
+          mean(c(slope2, slope3))), 1),
+    '% difference in environmental DDRs; p = ',
+    d1[3],
+    sep=""
+  )
+
+  # Add outer labels after plotting
+  mtext("Environmental Distance", side=1, adj=0.5, outer=TRUE, line=1)
+
+  title(main=Mtitle, line=0, outer=TRUE, cex.main=1.2)
+}
+
+dev.off()
+```
+
+
+# Export coordinates of Environmental DDR for subsequent plots
+
+```{r}
+# 1). Export coordinates of Environmental DDR in unirrigated farms for manual pot
+env_mat.unirr <- as.matrix(env.dist.unirr)
+bray_mat.unirr <- as.matrix(bray.dist.unirr)
+
+# Extract the lower triangle (excluding duplicates and zeros on the diagonal)
+lower_tri <- lower.tri(env_mat.unirr, diag = FALSE)
+env_vec <- env_mat.unirr[lower_tri]
+bray_vec <- bray_mat.unirr[lower_tri]
+
+dist_df <- data.frame(env = env_vec,  bray.taxa = bray_vec)
+
+dist_df.taxon.unirr <- data.frame(env = env_vec, bray = bray_vec)
+colnames(dist_df.taxon.unirr) <- c("env.unirr", "bray.taxon.unirr")
+
+write.csv(dist_df, file = "./Distance_decay_relationships/Output/Bray_Taxonomic_Environmental_Unirrigated.csv")
+
+
+library(ggplot2)
+theme_set(theme_bw())
+ggplot(dist_df, aes(x = env, y = bray.taxa)) +
+  geom_point(size = 2, alpha = 0.6) + 
+  geom_smooth(method = "lm", color = "blue", se = TRUE, size = 1.5) + 
+  labs(x = "Environmental Distance",
+       y = "Taxon's similarity",
+       title = "Relationship between Environmental and Taxon's similarity" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+
+# 2). Export coordinates of Environmental DDR in irrigated farms for manual pot
+env_mat.irr <- as.matrix(env.dist.irr)
+bray_mat.irr <- as.matrix(bray.dist.irr)
+
+# Extract the lower triangle (excluding duplicates and zeros on the diagonal)
+lower_tri <- lower.tri(env_mat.irr, diag = FALSE)
+env_vec <- env_mat.irr[lower_tri]
+bray_vec <- bray_mat.irr[lower_tri]
+
+dist_df <- data.frame(env = env_vec,  bray.taxa = bray_vec)
+dist_df.taxon.irr <- data.frame(env = env_vec, bray = bray_vec)
+colnames(dist_df.taxon.irr) <- c("env.irr", "bray.taxon.irr")
+
+write.csv(dist_df, file = "./Distance_decay_relationships/Output/Bray_Taxonomic_Environmental_Irrigated.csv")
+
+
+theme_set(theme_bw())
+ggplot(dist_df, aes(x = env, y = bray.taxa)) +
+  geom_point(size = 3.5, alpha = 0.6) + 
+  geom_smooth(method = "lm", color = "blue", se = TRUE, size = 1.5) + 
+  labs(x = "Environmental Distance",
+       y = "Taxon's similarity",
+       title = "Relationship between Environmental and Taxon's Distance" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14),
+    panel.grid = element_blank())
+```
+
+
+
+
+##
+# Functioinal profiles in irrigated and unirrigated farms
+
+```{r}
+com1 <- read.csv("./Distance_decay_relationships/Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+com <- com1[,rownames(env.dat)]
+com.irr <- com1[,rownames(env.dat.irr)]
+com.unirr <- com1[,rownames(env.dat.unirr)]
+
+bray.dist <- 1 - vegdist(t(com), method = "bray")
+bray.dist.irr <- 1 - vegdist(t(com.irr), method = "bray")
+bray.dist.unirr <- 1 - vegdist(t(com.unirr), method = "bray")
+```
+
+# Regression between Bray-Curtis and environmental distance
+
+```{r}
+# Overall model
+DD.env <- lm(bray.dist ~ env.dist)
+summary(DD.env, correlation = TRUE) # r2=0.170, P< 2.2e-16, slope = -0.078
+
+# non-irrigated samples
+DD.env.unirr <- lm(bray.dist.unirr ~ env.dist.unirr)
+summary(DD.env.unirr, correlation = TRUE) # r2=0.140, P< 2.2e-16, slope = -0.055
+
+# irrigated samples
+DD.env.irr <- lm(bray.dist.irr ~ env.dist.irr)
+summary(DD.env.irr, correlation = TRUE) # r2=0.000, P=0.317, slope = -0.014
+```
+
+
+# Plot DDR of overall model
+
+```{r}
+clr <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+#png(filename=file, width=5, height=5, units="in", res=600, pointsize=10)
+#par(mfrow=c(2, 2), mar = c(5,5,3,1), oma =c(0,0,4,0))
+
+par(mfrow=c(1, 1), mar = c(5,5,3,1), oma =c(0,0,4,0))
+
+# Make Plot for total community (geo)
+slope1 <- round(coefficients(DD.env)[2], 3)
+int1 <- round(coefficients(DD.env)[1], 3)
+p <- round(summary(DD.env)$coefficients[8],3)
+colors <- densCols(env.dist, bray.dist, colramp=clr)
+plot(env.dist, bray.dist, ylab="Functional similarity", pch=20,
+     xlab="Environmental distance", col = colors, cex=1.4, cex.lab=1.3)
+title(paste("Total: slope = ", slope1, "\n R2=0.170, p < 0.001"), line = 1, cex=1)
+abline(DD.env, col = "black", lwd=3.5)
+```
+
+
+# Plot DDR of irrigated and non-irrigated fields
+
+```{r}
+clr <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+par(mfrow=c(1, 2), mar = c(5,5,3,1), oma =c(3,0,3,0))
+
+
+# Make Plot for unirrigated (env)
+slope2 <- round(coefficients(DD.env.unirr)[2], 3)
+int2 <- round(coefficients(DD.env.unirr)[1], 3)
+p <- round(summary(DD.env.unirr)$coefficients[8], 3)
+colors <- densCols(env.dist.unirr, bray.dist.unirr, colramp=clr)
+plot(env.dist.unirr, bray.dist.unirr, ylab="Functioinal similarity", pch=20, xlim = c(0, 1),
+     xlab="Environmental distance", col = colors, cex=1.7, cex.lab=1.2)
+title(paste("Unirrigated: slope = ", slope2, "\n R2=0.140, p < 0.001"), line = 1, cex=1)
+abline(DD.env.unirr, col = "black", lwd=3)
+
+
+
+# Make Plot for irrigated (env)
+slope3 <- round(coefficients(DD.env.irr)[2], 3)
+int3 <- round(coefficients(DD.env.irr)[1], 3)
+p <- round(summary(DD.env.irr)$coefficients[8], 3)
+colors <- densCols(env.dist.irr, bray.dist.irr, colramp=clr)
+plot(env.dist.irr, bray.dist.irr, ylab="Functioinal similarity", pch=20,
+     xlab="Environmental distance", col = colors, cex=1.8, cex.lab=1.2)
+title(paste("Irrigated: slope = ", slope3, "\n R2=0.000, p = 0.317"), line = 1, cex=1)
+abline(DD.env.irr, col = "black", lwd=3)
+
+# export plots (width = 9 cm, height = 8.5 cm)
+```
+
+
+# tested whether differences in slopes and intercepts of DDRs
+
+```{r}
+# tested whether differences in slopes and intercepts of
+# DDRs were statistically significant using a permutation-based
+# linear regression approach
+# Add X-Axis Label to Plot
+
+a.dd <- 'y'
+
+if(a.dd == 'y'){
+  clr <- colorRampPalette(c("#00007F", "blue", "#007FFF",
+                            "cyan", "#7FFF7F", "yellow",
+                            "#FF7F00", "red", "#7F0000"))
+
+  png("DDR_environment_function.png", width = 3200, height = 1600, res = 300)
+  
+  par(mfrow=c(1, 2), mar=c(5,5,3,1), oma=c(3,0,3,0))
+
+  # Make Plot for unirrigated (env)
+  slope2 <- round(coefficients(DD.env.unirr)[2], 3)
+  int2 <- round(coefficients(DD.env.unirr)[1], 3)
+  p <- round(summary(DD.env.unirr)$coefficients[8], 3)
+
+  colors <- densCols(env.dist.unirr, bray.dist.unirr, colramp=clr)
+
+  plot(env.dist.unirr, bray.dist.unirr,
+       ylab="Functional similarity", pch=20,
+       xlim=c(0, 1),
+       xlab="Environmental distance",
+       col=colors, cex=1.7, cex.lab=1.2)
+
+  title(paste("Unirrigated: slope = ", slope2,
+              "\n R2=0.166, p < 0.001"),
+        line=1, cex=1)
+
+  abline(DD.env.unirr, col="black", lwd=3)
+
+  # Make Plot for irrigated (env)
+  slope3 <- round(coefficients(DD.env.irr)[2], 3)
+  int3 <- round(coefficients(DD.env.irr)[1], 3)
+  p <- round(summary(DD.env.irr)$coefficients[8], 3)
+
+  colors <- densCols(env.dist.irr, bray.dist.irr, colramp=clr)
+
+  plot(env.dist.irr, bray.dist.irr,
+       ylab="Functional similarity", pch=20,
+       xlab="Environmental distance",
+       col=colors, cex=1.8, cex.lab=1.2)
+
+  title(paste("Irrigated: slope = ", slope3,
+              "\n R2=0.060, p < 0.001"),
+        line=1, cex=1)
+
+  abline(DD.env.irr, col="black", lwd=3)
+
+  # Statistical comparisons
+  d1 <- diffslope(env.dist.unirr, bray.dist.unirr, env.dist.irr, bray.dist.irr, ic=TRUE, permutations=1000)
+
+  d3 <- diffic(env.dist.unirr, bray.dist.unirr, env.dist.irr, bray.dist.irr, resc.y=FALSE, permutations=1000)
+
+  Mtitle <- paste(
+    "Bray-Curtis\n",
+    round(100 * abs((slope2-slope3) /
+          mean(c(slope2, slope3))), 1),
+    '% difference in environmental DDRs; p = ',
+    d1[3],
+    sep=""
+  )
+
+  # Add outer labels after plotting
+  mtext("Environmental Distance", side=1, adj=0.5, outer=TRUE, line=1)
+
+  title(main=Mtitle, line=0, outer=TRUE, cex.main=1.2)
+}
+
+dev.off()
+```
+
+
+# Export coordinates of Environmental DDR for subsequent plots
+
+```{r}
+# 2). Environmental distance -- Unirrigated farms
+env_mat.unirr <- as.matrix(env.dist.unirr)
+bray_mat.unirr <- as.matrix(bray.dist.unirr)
+
+# Extract the lower triangle (excluding duplicates and zeros on the diagonal)
+lower_tri <- lower.tri(env_mat.unirr, diag = FALSE)
+env_vec <- env_mat.unirr[lower_tri]
+bray_vec <- bray_mat.unirr[lower_tri]
+
+dist_df <- data.frame(env = env_vec,  bray.KO = bray_vec)
+
+dist_df.taxon.unirr <- data.frame(env = env_vec, bray = bray_vec)
+colnames(dist_df.taxon.unirr) <- c("env.unirr", "bray.taxon.unirr")
+
+write.csv(dist_df, file = "./Distance_decay_relationships/Output/Bray_Functional_Environmental_Unirrigated.csv")
+
+
+theme_set(theme_bw())
+ggplot(dist_df, aes(x = env, y = bray.KO)) +
+  geom_point(size = 2, alpha = 0.6) + 
+  geom_smooth(method = "lm", color = "blue", se = TRUE, size = 1.5) + 
+  labs(x = "Environmental Distance",
+       y = "Functional similarity",
+       title = "Relationship between Environmental and Functional similarity" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+
+
+# 2). Environmental distance -- Irrigated farms
+env_mat.irr <- as.matrix(env.dist.irr)
+bray_mat.irr <- as.matrix(bray.dist.irr)
+
+# Method 1: Extract the lower triangle (excluding duplicates and zeros on the diagonal)
+lower_tri <- lower.tri(env_mat.irr, diag = FALSE)
+env_vec <- env_mat.irr[lower_tri]
+bray_vec <- bray_mat.irr[lower_tri]
+
+dist_df <- data.frame(env = env_vec,  bray.KO = bray_vec)
+dist_df.taxon.irr <- data.frame(env = env_vec, bray = bray_vec)
+colnames(dist_df.taxon.irr) <- c("env.irr", "bray.taxon.irr")
+
+write.csv(dist_df, file = "./Distance_decay_relationships/Output/Bray_Functional_Environmental_Irrigated.csv")
+
+
+theme_set(theme_bw())
+ggplot(dist_df, aes(x = env, y = bray.KO)) +
+  geom_point(size = 3.5, alpha = 0.6) + 
+  geom_smooth(method = "lm", color = "blue", se = TRUE, size = 1.5) + 
+  labs(x = "Environmental Distance",
+       y = "Functional similarity",
+       title = "Relationship between Environmental and Functional Distance" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 13),
+    axis.title = element_text(size = 14),
+    panel.grid = element_blank())
+```
+
+
+
+# Plot DDR using calculated data above
+
+```{r}
+### 3) Function KO ~ Environmental distance across irrigated and unirrigated farms
+df.final.ko.env <- read.csv("Bray_Functional_Environmental_Irrigated-Unirrigated.csv", header = T, row.names = 1)
+head(df.final.ko.env)
+irrigation.color <-  c("Irrigated"="#4169B2", "Unirrigated"="#BB2BA0")
+
+theme_set(theme_bw())
+p3 <- ggplot(df.final.ko.env, aes(x = env, y = bray.KO, color = type, fill = type)) +
+  geom_point(size = 2, alpha = 0.6) + 
+  geom_smooth(aes(group = type, color = type), method = "lm", se = TRUE, size = 1.5) +
+  labs(x = "Environmental distance",
+       y = "Functional similarity",
+       title = "Environmental and Functional similarity" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 18),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+    ) +
+  scale_color_manual(values = irrigation.color) + 
+  scale_fill_manual(values = irrigation.color)
+
+p3
+
+ggsave("./Distance_decay_relationships/Output/DDR between Environmental and Function_Irrigated_Unirrigated.pdf", height = 5.5, width = 7.5)
+```
+
+
+
+```{r}
+### DDR of Taxonomy ~ Environmental distance across irrigated and unirrigated farms
+df.final.taxon.env <- read.csv("Bray_Taxonomic_Environmental_Irrigated-Unirrigated.csv", header = T, row.names = 1)
+head(df.final.taxon.env)
+irrigation.color <-  c("Irrigated"="#4169B2", "Unirrigated"="#BB2BA0")
+
+theme_set(theme_bw())
+p4 <- ggplot(df.final.taxon.env, aes(x = env, y = bray.taxa, color = type, fill = type)) +
+  geom_point(size = 2, alpha = 0.6) +
+  geom_smooth(aes(group = type, color = type), method = "lm", se = TRUE, size = 1.5) +  
+  labs(x = "Environmental distance",
+       y = "Taxonomic similarity",
+       title = "Relationship between Environmental and Taxon's similarity" ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 17),
+    axis.title = element_text(size = 17),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+    ) +
+  scale_color_manual(values = irrigation.color) + 
+  scale_fill_manual(values = irrigation.color)
+
+p4
+
+ggsave("./Distance_decay_relationships/Output/DDR between Environmental and Taxonomy_Irrigated_Unirrigated.pdf", height = 5.5, width = 7.5)
+```
+

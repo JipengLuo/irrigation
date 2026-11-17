@@ -1,0 +1,242 @@
+---
+title: "Loss of endemics"
+author: "Jipeng Luo"
+date: "2026-11-16"
+output: html_document
+---
+
+## Examination of loss of endemics in irrigated and non-irrigated fields
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+
+# Functional community
+
+```{r}
+set.seed(12345)
+
+ko01 <- read.csv("./Loss_of_endemics/Data/KOs.count.csv", row.names = 1, header = TRUE, check.names = FALSE)
+meta <- read.csv("./Loss_of_endemics/Data/Metadata.csv", header = TRUE)
+
+ko <- ko01[, meta$SampleID]
+
+irrigated_samples <- meta %>%
+  filter(Irrigation == "irrigated") %>%
+  pull(SampleID)
+
+nonirrigated_samples <- meta %>%
+  filter(Irrigation == "non-irrigated") %>%
+  pull(SampleID)
+
+presence_matrix <- (ko > 0) * 1
+
+ko_occ <- data.frame(
+  KO = rownames(presence_matrix),
+  irrigated_count = rowSums(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_count = rowSums(presence_matrix[, nonirrigated_samples, drop = FALSE]),
+  irrigated_freq = rowMeans(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_freq = rowMeans(presence_matrix[, nonirrigated_samples, drop = FALSE])
+) %>%
+  mutate(
+    Group = case_when(
+      irrigated_count > 0 & nonirrigated_count > 0 ~ "shared",
+      irrigated_count > 0 & nonirrigated_count == 0 ~ "unique_irrigated",
+      irrigated_count == 0 & nonirrigated_count > 0 ~ "unique_nonirrigated",
+      TRUE ~ "absent"
+    )
+  )
+
+table(ko_occ$Group)
+
+
+# 1). Create non-irrigated endemic KO list
+nonirrigated_endemic_KOs <- ko_occ %>%
+  filter(Group == "unique_nonirrigated") %>%
+  pull(KO)
+
+length(nonirrigated_endemic_KOs)
+
+
+#################################################
+# Farm-level recovery of non-irrigated endemics
+#################################################
+nonirr_endemic_pa <- presence_matrix[
+  nonirrigated_endemic_KOs,
+  ,
+  drop = FALSE
+]
+
+farm_endemic_recovery <- data.frame(
+  SampleID = colnames(nonirr_endemic_pa),
+  
+  endemic_number =
+    colSums(nonirr_endemic_pa),
+  
+  endemic_fraction =
+    colSums(nonirr_endemic_pa) /
+    length(nonirrigated_endemic_KOs)
+) %>%
+  left_join(
+    meta %>%
+      select(SampleID, Irrigation),
+    by = "SampleID"
+  )
+
+head(farm_endemic_recovery)
+
+
+# Two-group comparison
+wilcox.test(endemic_number ~ Irrigation, data = farm_endemic_recovery, exact = FALSE)
+# W = 22, p-value = 3.235e-11
+
+wilcox.test(endemic_fraction ~ Irrigation, data = farm_endemic_recovery, exact = FALSE)
+# W = 22, p-value = 3.235e-11
+
+# Number of non-irrigated endemic KOs per irrigated farm
+range(farm_endemic_recovery$endemic_number)
+
+p_number <- ggplot(farm_endemic_recovery,
+            aes(x = Irrigation, y = endemic_number, color = Irrigation)) +
+  #geom_boxplot(width = 0.10, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.15, size = 2, alpha = 0.7) +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  theme_bw() +
+  annotate("text", x = 1.5, y = 36, label = "P < 0.001", size = 6) +
+  labs(x = NULL, y = "Number of endemic genes per farms", 
+       title = "Loss of non-irrigated endemic genes" ) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5),
+        panel.grid = element_blank())
+
+p_number
+ggsave("./Loss_of_endemics/Output/Loss of endemic genes_Fig. 5f.pdf", p_number, width = 5, height = 5.3)
+
+```
+
+
+
+# Taxonomic community
+
+```{r}
+set.seed(12345)
+
+ko01 <- read.csv("./Loss_of_endemics/Data/Species.count.csv", row.names = 1, header = TRUE, check.names = FALSE)
+meta <- read.csv("./Loss_of_endemics/Data/Metadata.csv", header = TRUE)
+
+ko <- ko01[, meta$SampleID]
+
+irrigated_samples <- meta %>%
+  filter(Irrigation == "irrigated") %>%
+  pull(SampleID)
+
+nonirrigated_samples <- meta %>%
+  filter(Irrigation == "non-irrigated") %>%
+  #sample_n(size = length(irrigated_samples), replace = FALSE) %>%
+  pull(SampleID)
+
+presence_matrix <- (ko > 0) * 1
+
+ko_occ <- data.frame(
+  KO = rownames(presence_matrix),
+  irrigated_count = rowSums(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_count = rowSums(presence_matrix[, nonirrigated_samples, drop = FALSE]),
+  irrigated_freq = rowMeans(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_freq = rowMeans(presence_matrix[, nonirrigated_samples, drop = FALSE])
+) %>%
+  mutate(
+    Group = case_when(
+      irrigated_count > 0 & nonirrigated_count > 0 ~ "shared",
+      irrigated_count > 0 & nonirrigated_count == 0 ~ "unique_irrigated",
+      irrigated_count == 0 & nonirrigated_count > 0 ~ "unique_nonirrigated",
+      TRUE ~ "absent"
+    )
+  )
+
+table(ko_occ$Group)
+
+
+# 1). Create non-irrigated endemic KO list
+nonirrigated_endemic_KOs <- ko_occ %>%
+  filter(Group == "unique_nonirrigated") %>%
+  pull(KO)
+
+length(nonirrigated_endemic_KOs)
+
+
+#################################################
+# Farm-level recovery of non-irrigated endemics
+#################################################
+nonirr_endemic_pa <- presence_matrix[
+  nonirrigated_endemic_KOs,
+  ,
+  drop = FALSE
+]
+
+farm_endemic_recovery <- data.frame(
+  SampleID = colnames(nonirr_endemic_pa),
+  
+  endemic_number =
+    colSums(nonirr_endemic_pa),
+  
+  endemic_fraction =
+    colSums(nonirr_endemic_pa) /
+    length(nonirrigated_endemic_KOs)
+) %>%
+  left_join(
+    meta %>%
+      select(SampleID, Irrigation),
+    by = "SampleID"
+  )
+
+head(farm_endemic_recovery)
+
+
+# Two-group comparison
+wilcox.test(endemic_number ~ Irrigation, data = farm_endemic_recovery, exact = FALSE)
+# W = 0, p-value = 7.377e-12
+
+wilcox.test(endemic_fraction ~ Irrigation, data = farm_endemic_recovery, exact = FALSE)
+# W = 0, p-value = 7.377e-12
+
+
+# Number of non-irrigated endemic KOs per irrigated farm
+range(farm_endemic_recovery$endemic_number)
+
+p_number <- ggplot(farm_endemic_recovery,
+                   aes(x = Irrigation, y = endemic_number, color = Irrigation)) +
+  #geom_boxplot(width = 0.10, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.15, size = 2, alpha = 0.7) +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  theme_bw() +
+  annotate("text", x = 1.5, y = 300, label = "P < 0.001", size = 6) +
+  labs(x = NULL, y = "Number of endemic taxa per farms", 
+       title = "Loss of non-irrigated endemic taxa" ) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5),
+        panel.grid = element_blank())
+
+p_number
+ggsave("./Loss_of_endemics/Output/Loss of endemic taxa_Fig. 5e.pdf", p_number, width = 5, height = 5.3)
+```
+
+

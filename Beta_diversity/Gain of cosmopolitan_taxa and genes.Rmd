@@ -1,0 +1,624 @@
+---
+title: "Gain of cosmopolitan taxa/genes"
+author: "Jipeng Luo"
+date: "2026-11-16"
+output: html_document
+---
+
+## Gain of cosmopolitan taxa/genes in irrigated and non-irrigated fields
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+## Load functional gene data
+
+```{r}
+#=====================Function=============================
+ko01 <- read.csv("./Gain_of_cosmopolitan/Data/KOs.count.csv", row.names = 1, header = TRUE, check.names = FALSE)
+meta <- read.csv("./Gain_of_cosmopolitan/Data/Metadata.csv", header = TRUE)
+
+set.seed(12345)
+
+ko <- ko01[, meta$SampleID]
+
+# 2. Define samples
+irrigated_samples <- meta %>%
+  filter(Irrigation == "irrigated") %>%
+  pull(SampleID)
+
+nonirrigated_samples <- meta %>%
+  filter(Irrigation == "non-irrigated") %>%
+  #sample_n(size = length(irrigated_samples), replace = FALSE) %>%
+  pull(SampleID)
+
+# 3. Presence/absence matrix
+presence_matrix <- (ko > 0) * 1
+
+# 4. Calculate occurrence in each system
+ko_occ <- data.frame(
+  KO = rownames(presence_matrix),
+  irrigated_count = rowSums(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_count = rowSums(presence_matrix[, nonirrigated_samples, drop = FALSE]),
+  irrigated_freq = rowMeans(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_freq = rowMeans(presence_matrix[, nonirrigated_samples, drop = FALSE])
+) %>%
+  mutate(
+    Group = case_when(
+      irrigated_count > 0 & nonirrigated_count > 0 ~ "shared",
+      irrigated_count > 0 & nonirrigated_count == 0 ~ "unique_irrigated",
+      irrigated_count == 0 & nonirrigated_count > 0 ~ "unique_nonirrigated",
+      TRUE ~ "absent"
+    )
+  )
+
+table(ko_occ$Group)
+
+# 5. Define cosmopolitan shared taxa
+# Adjust threshold as needed
+# For 75% prevalence with 22 samples: count >= 17
+shared_KOs <- ko_occ %>%
+  filter(irrigated_count > 17,  # 75% prevalence across non-irrigated samples
+         nonirrigated_count > 17) %>%
+  pull(KO)
+
+length(shared_KOs)
+
+# 6. Extract shared taxa presence/absence matrix
+shared_pa <- presence_matrix[shared_KOs, , drop = FALSE]
+
+# 7. Total taxa richness per farm
+total_taxa_per_farm <- colSums(presence_matrix)
+
+# 8. Farm-level recovery of shared/cosmopolitan taxa
+farm_shared_recovery <- data.frame(
+  SampleID = colnames(shared_pa),
+  shared_number = colSums(shared_pa),
+  shared_fraction_global = colSums(shared_pa) / length(shared_KOs),
+  total_richness = total_taxa_per_farm[colnames(shared_pa)],
+  shared_fraction_local = colSums(shared_pa) / total_taxa_per_farm[colnames(shared_pa)]) %>%
+  left_join(meta %>% select(SampleID, Irrigation), by = "SampleID") %>%
+  mutate(Irrigation = factor(
+      Irrigation,
+      levels = c("irrigated", "non-irrigated")))
+
+head(farm_shared_recovery)
+
+# 9. Statistical tests
+wilcox.test(shared_number ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 702.5, p-value = 0.1242
+# The number of cosmopolitan KOs
+
+wilcox.test(shared_fraction_global ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 702.5, p-value = 0.1242
+# The proportion of cosmopolitan KOs detected in each farmland sample relative to the total number of predefined shared KOs
+
+wilcox.test(shared_fraction_local ~ Irrigation, data = farm_shared_recovery, exact = FALSE,correct = TRUE) # W = 741, p-value = 0.04629
+# shared_fraction_local: Of all the KOs detected in each farm sample, the proportion belongs to the predefined 
+# shared/cosmopolitan KOs, that is, the cosmopolitan KOs;
+# More widely distributed shared KO events were detected in irrigated farmland, but the proportion of these KO events in the overall
+# functional richness of the farmland did not increase significantly.
+
+
+# 10. Summary statistics
+farm_shared_recovery %>%
+  group_by(Irrigation) %>%
+  summarise(
+    mean_shared_number = mean(shared_number),
+    median_shared_number = median(shared_number),
+    sd_shared_number = sd(shared_number),
+    
+    mean_shared_fraction_global = mean(shared_fraction_global),
+    median_shared_fraction_global = median(shared_fraction_global),
+    sd_shared_fraction_global = sd(shared_fraction_global),
+    
+    mean_total_richness = mean(total_richness),
+    median_total_richness = median(total_richness),
+    sd_total_richness = sd(total_richness),
+    
+    mean_shared_fraction_local = mean(shared_fraction_local),
+    median_shared_fraction_local = median(shared_fraction_local),
+    sd_shared_fraction_local = sd(shared_fraction_local),
+    
+    n = n(), .groups = "drop" )
+
+
+# 11. Plot 1: number of cosmopolitan/shared taxa per farm
+range(farm_shared_recovery$shared_number)
+
+p_shared_number <- ggplot(farm_shared_recovery,
+  aes(x = Irrigation, y = shared_number, color = Irrigation)) +
+  geom_boxplot(width = 0.10, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Number of cosmopolitan genes \n(75% prevalence) per farm",
+    title = "Farm-level recovery of \n cosmopolitan (75% prevalence) genes") +
+  annotate("text", x = 1.5, y = 7100, label = "Wilcoxon test: P = 0.124", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+    axis.title = element_text(size = 17, colour = "black"),
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5))
+
+p_shared_number
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_genes_number_per_farm.pdf", p_shared_number, width = 5, height = 5.3)
+
+
+# 12. Plot 2: fraction of all cosmopolitan taxa recovered per farm
+p_shared_fraction_global <- ggplot(farm_shared_recovery,
+      aes(x = Irrigation, y = shared_fraction_global, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of cosmopolitan genes \n(75% prevalence) recovered",
+    title = "Recovery fraction of cosmopolitan genes \n(75% prevalence)") +
+  annotate("text", x = 1.5, y = 1.005, label = "Wilcoxon test: P = 0.124", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+    axis.title = element_text(size = 17, colour = "black"),
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_global
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_genes_recovery_fraction_per_farm.pdf", p_shared_fraction_global, width = 5, height = 5.3)
+
+
+# 13. Plot 3: fraction of each farm community composed of cosmopolitan taxa
+range(farm_shared_recovery$shared_fraction_local)
+
+p_shared_fraction_local <- ggplot(farm_shared_recovery,
+  aes(x = Irrigation, y = shared_fraction_local, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.12, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of local community \n composed of cosmopolitan taxa",
+    title = "Contribution of cosmopolitan genes (75% prevalence) \n to local communities") +
+  annotate("text", x = 1.5, y = 0.965, label = "Wilcoxon test: P = 0.046", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+    axis.title = element_text(size = 17, colour = "black"),
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_local
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_genes_fraction_of_local_community.pdf", p_shared_fraction_local, width = 5, height = 5.3)
+
+```
+
+
+
+## Load taxonomic community data
+
+```{r}
+
+ko01 <- read.csv("./Gain_of_cosmopolitan/Data/Species.count.csv", row.names = 1, header = TRUE, check.names = FALSE)
+meta <- read.csv("./Gain_of_cosmopolitan/Data/Metadata.csv", header = TRUE)
+
+set.seed(12345)
+
+ko <- ko01[, meta$SampleID]
+
+# 2. Define samples
+irrigated_samples <- meta %>%
+  filter(Irrigation == "irrigated") %>%
+  pull(SampleID)
+
+nonirrigated_samples <- meta %>%
+  filter(Irrigation == "non-irrigated") %>%
+  #sample_n(size = length(irrigated_samples), replace = FALSE) %>%
+  pull(SampleID)
+
+# 3. Presence/absence matrix
+presence_matrix <- (ko > 0) * 1
+
+# 4. Calculate occurrence in each system
+ko_occ <- data.frame(
+  KO = rownames(presence_matrix),
+  irrigated_count = rowSums(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_count = rowSums(presence_matrix[, nonirrigated_samples, drop = FALSE]),
+  irrigated_freq = rowMeans(presence_matrix[, irrigated_samples, drop = FALSE]),
+  nonirrigated_freq = rowMeans(presence_matrix[, nonirrigated_samples, drop = FALSE])
+) %>%
+  mutate(
+    Group = case_when(
+      irrigated_count > 0 & nonirrigated_count > 0 ~ "shared",
+      irrigated_count > 0 & nonirrigated_count == 0 ~ "unique_irrigated",
+      irrigated_count == 0 & nonirrigated_count > 0 ~ "unique_nonirrigated",
+      TRUE ~ "absent"
+    )
+  )
+
+table(ko_occ$Group)
+
+# 5. Define cosmopolitan shared taxa
+# Adjust threshold as needed
+# For 75% prevalence with 22 samples: count >= 17
+shared_KOs <- ko_occ %>%
+  filter(irrigated_count > 17,  # 75% prevalence across non-irrigated samples
+         nonirrigated_count > 17) %>%
+  pull(KO)
+
+length(shared_KOs)
+
+# 6. Extract shared taxa presence/absence matrix
+shared_pa <- presence_matrix[shared_KOs, , drop = FALSE]
+
+# 7. Total taxa richness per farm
+total_taxa_per_farm <- colSums(presence_matrix)
+
+# 8. Farm-level recovery of shared/cosmopolitan taxa
+farm_shared_recovery <- data.frame(
+  SampleID = colnames(shared_pa),
+  shared_number = colSums(shared_pa),
+  shared_fraction_global = colSums(shared_pa) / length(shared_KOs),
+  total_richness = total_taxa_per_farm[colnames(shared_pa)],
+  shared_fraction_local = colSums(shared_pa) / total_taxa_per_farm[colnames(shared_pa)]) %>%
+  left_join(meta %>% select(SampleID, Irrigation), by = "SampleID") %>%
+  mutate(Irrigation = factor(
+    Irrigation,
+    levels = c("irrigated", "non-irrigated")))
+
+head(farm_shared_recovery)
+
+# 9. Statistical tests
+wilcox.test(shared_number ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = W = 765, p-value = 0.02281
+
+wilcox.test(shared_fraction_global ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 765, p-value = 0.02281
+
+wilcox.test(shared_fraction_local ~ Irrigation, data = farm_shared_recovery, exact = FALSE,correct = TRUE) # W = 699, p-value = 0.1346
+
+
+# 10. Summary statistics
+farm_shared_recovery %>%
+  group_by(Irrigation) %>%
+  summarise(
+    mean_shared_number = mean(shared_number),
+    median_shared_number = median(shared_number),
+    sd_shared_number = sd(shared_number),
+    
+    mean_shared_fraction_global = mean(shared_fraction_global),
+    median_shared_fraction_global = median(shared_fraction_global),
+    sd_shared_fraction_global = sd(shared_fraction_global),
+    
+    mean_total_richness = mean(total_richness),
+    median_total_richness = median(total_richness),
+    sd_total_richness = sd(total_richness),
+    
+    mean_shared_fraction_local = mean(shared_fraction_local),
+    median_shared_fraction_local = median(shared_fraction_local),
+    sd_shared_fraction_local = sd(shared_fraction_local),
+    
+    n = n(), .groups = "drop"
+  )
+
+
+# 11. Plot 1: number of cosmopolitan/shared taxa per farm
+range(farm_shared_recovery$shared_number)
+
+p_shared_number <- ggplot(farm_shared_recovery,
+                          aes(x = Irrigation, y = shared_number, color = Irrigation)) +
+  geom_boxplot(width = 0.10, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Number of cosmopolitan taxa \n(75% prevalence) per farm",
+       title = "Farm-level recovery of \n cosmopolitan (75% prevalence) taxa") +
+  annotate("text", x = 1.5, y = 6300, label = "Wilcoxon test: P = 0.023", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_number
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_taxa_number_per_farm.pdf", p_shared_number, width = 5, height = 5.3)
+
+
+# 12. Plot 2: fraction of all cosmopolitan taxa recovered per farm
+p_shared_fraction_global <- ggplot(farm_shared_recovery,
+                                   aes(x = Irrigation, y = shared_fraction_global, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of cosmopolitan taxa \n(75% prevalence) recovered",
+       title = "Recovery fraction of cosmopolitan taxa \n(75% prevalence)") +
+  annotate("text", x = 1.5, y = 1.00, label = "Wilcoxon test: P = 0.023", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_global
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_taxa_recovery_fraction_per_farm.pdf", p_shared_fraction_global, width = 5, height = 5.3)
+
+
+# 13. Plot 3: fraction of each farm community composed of cosmopolitan taxa
+range(farm_shared_recovery$shared_fraction_local)
+
+p_shared_fraction_local <- ggplot(farm_shared_recovery,
+                                  aes(x = Irrigation, y = shared_fraction_local, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.12, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of local community \n composed of cosmopolitan taxa",
+       title = "Contribution of cosmopolitan taxa (75% prevalence) \n to local communities") +
+  annotate("text", x = 1.5, y = 0.82, label = "Wilcoxon test: P = 0.135", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_local
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.75 prevalence)_taxa_fraction_of_local_community.pdf", p_shared_fraction_local, width = 5, height = 5.3)
+
+
+
+
+#======================90% prevalence across non-irrigated samples=============================
+# For 90% prevalence with 22 samples: count >= 20
+shared_KOs <- ko_occ %>%
+  filter(irrigated_count > 20,
+         nonirrigated_count > 20) %>%
+  pull(KO)
+
+length(shared_KOs)
+
+# 6. Extract shared taxa presence/absence matrix
+shared_pa <- presence_matrix[shared_KOs, , drop = FALSE]
+
+# 7. Total taxa richness per farm
+total_taxa_per_farm <- colSums(presence_matrix)
+
+# 8. Farm-level recovery of shared/cosmopolitan taxa
+farm_shared_recovery <- data.frame(
+  SampleID = colnames(shared_pa),
+  shared_number = colSums(shared_pa),
+  shared_fraction_global = colSums(shared_pa) / length(shared_KOs),
+  total_richness = total_taxa_per_farm[colnames(shared_pa)],
+  shared_fraction_local = colSums(shared_pa) / total_taxa_per_farm[colnames(shared_pa)]) %>%
+  left_join(meta %>% select(SampleID, Irrigation), by = "SampleID") %>%
+  mutate(Irrigation = factor(
+    Irrigation,
+    levels = c("irrigated", "non-irrigated")))
+
+head(farm_shared_recovery)
+
+# 9. Statistical tests
+wilcox.test(shared_number ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 924, p-value = 3.217e-05
+
+wilcox.test(shared_fraction_global ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 924, p-value = 3.217e-05
+
+wilcox.test(shared_fraction_local ~ Irrigation, data = farm_shared_recovery, exact = FALSE,correct = TRUE) # W = 674, p-value = 0.23
+
+
+# 10. Summary statistics
+farm_shared_recovery %>%
+  group_by(Irrigation) %>%
+  summarise(
+    mean_shared_number = mean(shared_number),
+    median_shared_number = median(shared_number),
+    sd_shared_number = sd(shared_number),
+    
+    mean_shared_fraction_global = mean(shared_fraction_global),
+    median_shared_fraction_global = median(shared_fraction_global),
+    sd_shared_fraction_global = sd(shared_fraction_global),
+    
+    mean_total_richness = mean(total_richness),
+    median_total_richness = median(total_richness),
+    sd_total_richness = sd(total_richness),
+    
+    mean_shared_fraction_local = mean(shared_fraction_local),
+    median_shared_fraction_local = median(shared_fraction_local),
+    sd_shared_fraction_local = sd(shared_fraction_local),
+    
+    n = n(), .groups = "drop"
+  )
+
+
+# 11. Plot 1: number of cosmopolitan/shared taxa per farm
+range(farm_shared_recovery$shared_number)
+
+p_shared_number <- ggplot(farm_shared_recovery,
+                          aes(x = Irrigation, y = shared_number, color = Irrigation)) +
+  geom_boxplot(width = 0.10, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Number of cosmopolitan taxa per farm",
+       title = "Farm-level recovery of \n cosmopolitan (90% prevalence) taxa") +
+  annotate("text", x = 1.5, y = 4850, label = "Wilcoxon test: P < 0.001", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_number
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.9 prevalence)_taxa_number_per_farm.pdf", p_shared_number, width = 5, height = 5.3)
+
+
+# 12. Plot 2: fraction of all cosmopolitan taxa recovered per farm
+p_shared_fraction_global <- ggplot(farm_shared_recovery,
+                                   aes(x = Irrigation, y = shared_fraction_global, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of cosmopolitan taxa recovered",
+       title = "Recovery fraction of cosmopolitan taxa") +
+  annotate("text", x = 1.5, y = 1.006, label = "Wilcoxon test: P < 0.001", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_global
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.9 prevalence)_taxa_recovery_fraction_per_farm.pdf", p_shared_fraction_global, width = 5, height = 5.3)
+
+
+# 13. Plot 3: fraction of each farm community composed of cosmopolitan taxa
+range(farm_shared_recovery$shared_fraction_local)
+
+p_shared_fraction_local <- ggplot(farm_shared_recovery,
+                                  aes(x = Irrigation, y = shared_fraction_local, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.12, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of local community \n composed of cosmopolitan taxa",
+       title = "Contribution of cosmopolitan taxa (90% prevalence) \n to local communities") +
+  annotate("text", x = 1.5, y = 0.70, label = "Wilcoxon test: P = 0.230", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_local
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (0.9 prevalence)_taxa_fraction_of_local_community.pdf", p_shared_fraction_local, width = 5, height = 5.3)
+
+
+
+
+#======================100% prevalence across non-irrigated samples=============================
+# For 100% prevalence with 22 samples: count > 21
+shared_KOs <- ko_occ %>%
+  filter(irrigated_count > 21,
+         nonirrigated_count > 21) %>%
+  pull(KO)
+
+length(shared_KOs)
+
+# 6. Extract shared taxa presence/absence matrix
+shared_pa <- presence_matrix[shared_KOs, , drop = FALSE]
+
+# 7. Total taxa richness per farm
+total_taxa_per_farm <- colSums(presence_matrix)
+
+# 8. Farm-level recovery of shared/cosmopolitan taxa
+farm_shared_recovery <- data.frame(
+  SampleID = colnames(shared_pa),
+  shared_number = colSums(shared_pa),
+  shared_fraction_global = colSums(shared_pa) / length(shared_KOs),
+  total_richness = total_taxa_per_farm[colnames(shared_pa)],
+  shared_fraction_local = colSums(shared_pa) / total_taxa_per_farm[colnames(shared_pa)]) %>%
+  left_join(meta %>% select(SampleID, Irrigation), by = "SampleID") %>%
+  mutate(Irrigation = factor(
+    Irrigation,
+    levels = c("irrigated", "non-irrigated")))
+
+head(farm_shared_recovery)
+
+# 9. Statistical tests
+wilcox.test(shared_number ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 1144, p-value = 7.385e-12
+wilcox.test(shared_fraction_global ~ Irrigation, data = farm_shared_recovery, exact = FALSE, correct = TRUE) # W = 1144, p-value = 7.385e-12
+wilcox.test(shared_fraction_local ~ Irrigation, data = farm_shared_recovery, exact = FALSE,correct = TRUE) # W = 652, p-value = 0.3471
+
+
+# 10. Summary statistics
+farm_shared_recovery %>%
+  group_by(Irrigation) %>%
+  summarise(
+    mean_shared_number = mean(shared_number),
+    median_shared_number = median(shared_number),
+    sd_shared_number = sd(shared_number),
+    
+    mean_shared_fraction_global = mean(shared_fraction_global),
+    median_shared_fraction_global = median(shared_fraction_global),
+    sd_shared_fraction_global = sd(shared_fraction_global),
+    
+    mean_total_richness = mean(total_richness),
+    median_total_richness = median(total_richness),
+    sd_total_richness = sd(total_richness),
+    
+    mean_shared_fraction_local = mean(shared_fraction_local),
+    median_shared_fraction_local = median(shared_fraction_local),
+    sd_shared_fraction_local = sd(shared_fraction_local),
+    
+    n = n(), .groups = "drop"
+  )
+
+
+# 11. Plot 1: number of cosmopolitan/shared taxa per farm
+range(farm_shared_recovery$shared_number)
+
+p_shared_number <- ggplot(farm_shared_recovery,
+                          aes(x = Irrigation, y = shared_number, color = Irrigation)) +
+  geom_boxplot(width = 0.10, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Number of cosmopolitan taxa per farm",
+       title = "Farm-level recovery of \n cosmopolitan (100% prevalence) taxa") +
+  annotate("text", x = 1.5, y = 3970, label = "Wilcoxon test: P < 0.001", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_number
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (1.0 prevalence)_taxa_number_per_farm.pdf", p_shared_number, width = 5, height = 5.3)
+
+
+# 12. Plot 2: fraction of all cosmopolitan taxa recovered per farm
+p_shared_fraction_global <- ggplot(farm_shared_recovery,
+                                   aes(x = Irrigation, y = shared_fraction_global, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.10, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of cosmopolitan taxa recovered",
+       title = "Recovery fraction of cosmopolitan taxa") +
+  annotate("text", x = 1.5, y = 1.006, label = "Wilcoxon test: P < 0.001", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_global
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (1.0 prevalence)_taxa_recovery_fraction_per_farm.pdf", p_shared_fraction_global, width = 5, height = 5.3)
+
+
+# 13. Plot 3: fraction of each farm community composed of cosmopolitan taxa
+range(farm_shared_recovery$shared_fraction_local)
+
+p_shared_fraction_local <- ggplot(farm_shared_recovery, aes(x = Irrigation, y = shared_fraction_local, color = Irrigation)) +
+  geom_boxplot(width = 0.12, linewidth = 0.7, outlier.shape = NA, color = "black") +
+  geom_violin(fill = NA, linewidth = 0.9) +
+  geom_jitter(width = 0.12, size = 2, alpha = 0.7) +
+  theme_bw() +
+  scale_color_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  labs(x = NULL, y = "Fraction of local community \n composed of cosmopolitan taxa",
+       title = "Contribution of cosmopolitan taxa (90% prevalence) \n to local communities") +
+  annotate("text", x = 1.5, y = 0.60, label = "Wilcoxon test: P = 0.347", size = 5) +
+  theme(axis.text = element_text(size = 17, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
+
+p_shared_fraction_local
+ggsave("./Gain_of_cosmopolitan/Output/Cosmopolitan (1.0 prevalence)_taxa_fraction_of_local_community.pdf", p_shared_fraction_local, width = 5, height = 5.3)
+
+```
+
+

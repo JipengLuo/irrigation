@@ -1,0 +1,519 @@
+---
+title: "Soil physicochemical properties in irrigated and non-irrigated fields"
+author: "Jipeng Luo"
+date: "2026-11-13"
+output: pdf_document
+---
+
+
+## Comparison of soil physicochemical properties between irrigated and non-irrigated fields
+
+## Load packages and functions
+
+```{r}
+library(lmerTest)
+library(lme4)
+library(dplyr)
+library(ggplot2)
+```
+
+## Import dataset
+
+```{r}
+metadata1 <- read.csv("Metadata.csv", header = T, row.names = 1)
+# choose irrigated and non-irrigated fields
+metadata1 <- subset(metadata1, Irrigation %in% c("irrigated","non-irrigated"))
+env1 <- read.csv("Vetted_soil_properties.csv", row.names = 1, header = T)
+metadata <- metadata1[rownames(metadata1) %in% rownames(env),]
+env2 <- otutab1[rownames(metadata),]
+env <- cbind(metadata, env2)
+```
+
+
+# set up plot parameters
+
+```{r}
+theme.plot <- theme(
+  axis.text.x = element_text(size = 19, colour = "black"),
+  axis.text.y = element_text(size = 19, colour = "black"),
+  axis.title.x = element_text(size = 19), 
+  axis.title.y = element_text(size = 19),
+  legend.position = "none")
+```
+
+## Plot
+```{r}
+# Surface moisture
+range(env$SM.M10)
+tapply(env$SM.M10, env$Irrigation, mean)
+p1 <- ggplot(data = env, aes(x = Irrigation, y = SM.M10, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data= env, aes(x=Irrigation, y=SM.M10), color= "black", size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2", "#BB2BA0","gray")) +
+  labs(x = "", y = "Suface moisture (m3/m3)") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(0.13, 0.365)) +
+  annotate("text", x = 1.5, y = 0.36, label = "P = 0.012", size = 6)
+
+p1
+anova(lmer(SM.M10 ~ Irrigation + (1|State), data = env))
+ggsave("Surface moisture.pdf", p1, width = 5, height = 5.5)
+
+
+# Silt content
+range(env$Silt)
+tapply(env$Silt, env$Irrigation, mean) # irr, 37.4;  unirr, 42.6
+p2 <- ggplot(data = env, aes(x = Irrigation, y = Silt, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env, aes(x=Irrigation, y= Silt, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) + 
+  labs(y = "Silt (%)", x = "") + ylim(0, 85) +
+  theme.plot + 
+  coord_cartesian(ylim = c(13, 86)) +
+  annotate("text", x = 1.5, y = 85, label = "P = 0.005", size = 6)
+
+p2
+anova(lmer(Silt ~ Irrigation + (1|State), data = env))
+ggsave("Silt.pdf", p2, width = 5, height = 5.5)
+
+
+# Bulk density
+## Delete NA
+env.bk <- env %>% filter(!is.na(bulk.density)) # There are four NA values needed to be removed
+range(env.bk$bulk.density)
+tapply(env.bk$bulk.density, env.bk$Irrigation, mean) # irr, 1.12;  unirr, 1.10
+p3 <- ggplot(data = env.bk, aes(x = Irrigation, y = bulk.density, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env.bk, aes(x=Irrigation, y= bulk.density, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) + 
+  labs(y = "Bulk density (g/cm3)", x = "") + ylim(0, 85) +
+  theme.plot + 
+  coord_cartesian(ylim = c(0.8, 1.55)) +
+  annotate("text", x = 1.5, y = 1.54, label = "P = 0.175", size = 6)
+
+p3
+anova(lmer(bulk.density ~ Irrigation + (1|State), data = env.bk))
+ggsave("Bulk.density.pdf", p3, width = 5, height = 5.5)
+
+
+# Sand content
+range(env$Sand)
+tapply(env$Sand, env$Irrigation, mean)
+p4 <- ggplot(data = env, aes(x = Irrigation, y = Sand, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env, aes(x=Irrigation, y= Sand, fill=Irrigation),size=1.5,height=0.02,width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "Sand (%)", x = "") + ylim(0, 85) +
+  theme.plot + 
+  coord_cartesian(ylim = c(3.48, 86)) +
+  annotate("text", x = 1.5, y = 85, label = "P = 0.003", size = 6)
+
+p4
+anova(lmer(Sand ~ Irrigation + (1|State), data = env))
+ggsave("Sand.pdf", p4, width = 5, height = 5.5)
+
+
+# pH value
+env.ph <- env %>% filter(!is.na(pH)) # There are four NA values needed to be removed
+range(env.ph$pH)
+tapply(env.ph$pH, env.ph$Irrigation, mean)
+p5 <- ggplot(data = env.ph, aes(x = Irrigation, y = pH, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env.ph, aes(x=Irrigation, y= pH, fill= Irrigation),size=1.5,height=0.02,width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "pH", x = "") + ylim(0, 7.5) +
+  theme.plot + 
+  coord_cartesian(ylim = c(4.05, 7.13)) +
+  annotate("text", x = 1.5, y = 7.1, label = "P = 0.727", size = 6)
+
+p5
+anova(lmer(pH ~ Irrigation + (1|State), data = env.ph))
+ggsave("Soil pH.pdf", p5, width = 5, height = 5.5)
+
+
+# total carbon
+range(env$TC)
+tapply(env$TC, env$Irrigation, mean)
+p6 <- ggplot(data = env, aes(x = Irrigation, y = TC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env, aes(x=Irrigation, y= TC, fill=Irrigation),size=1.5,height=0.02,width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "TC (%)", x = "") + ylim(0, 3.2) +
+  theme.plot + 
+  coord_cartesian(ylim = c(0.685, 3.1)) +
+  annotate("text", x = 1.5, y = 3.10, label = "P = 0.962", size = 6)
+
+p6
+anova(lmer(TC ~ Irrigation + (1|State), data = env))
+ggsave("TC.pdf", p6, width = 5, height = 5.5)
+
+
+# Total nitrogen
+range(env$TN)
+tapply(env$TN, env$Irrigation, mean)
+p7 <- ggplot(data = env, aes(x = Irrigation, y = TN, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(data=env, aes(x=Irrigation, y= TN, fill=Irrigation),size=1.5,height=0.02,width=0.1, alpha= 0.6) + 
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  labs(y = "TN (%)", x = "") + ylim(0, 0.30) +
+  theme.plot + 
+  coord_cartesian(ylim = c(0.069, 0.29)) +
+  annotate("text", x = 1.5, y = 0.292, label = "P = 0.368", size = 6)
+
+p7
+anova(lmer(TN ~ Irrigation + (1|State), data = env))
+ggsave("TN.pdf", p7, width = 5, height = 5.5)
+
+
+# C/N ratio
+range(env$CN_ratio)
+tapply(env$CN_ratio, env$Irrigation, mean) 
+p8 <- ggplot(data = env, aes(x = Irrigation, y = CN_ratio, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= CN_ratio, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "C:N ratio", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(8.5, 17.5)) +
+  annotate("text", x = 1.5, y = 17.5, label = "P = 0.199", size = 6)
+
+p8
+anova(lmer(CN_ratio ~ Irrigation + (1|State), data = env))
+ggsave("CN_ratio.pdf", p8, width = 5, height = 5.5)
+
+
+# organic matter
+range(env$OM)
+tapply(env$OM, env$Irrigation, mean)
+p9 <- ggplot(data = env, aes(x = Irrigation, y = OM, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= OM, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Organic matter (g/kg)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(0.98, 6.2)) +
+  annotate("text", x = 1.5, y = 6.15, label = "P = 0.400", size = 6)
+
+p9
+anova(lmer(OM ~ Irrigation + (1|State), data = env))
+ggsave("OM.pdf", p9, width = 5, height = 5.5)
+
+
+# total phosphorus
+range(env$P_mg_kg)
+tapply(env$P_mg_kg, env$Irrigation, mean)
+p10 <- ggplot(data = env, aes(x = Irrigation, y = P_mg_kg, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= P_mg_kg, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Total P (mg/kg)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(9, 400)) +
+  annotate("text", x = 1.5, y = 395, label = "P = 0.340", size = 6)
+
+p10
+anova(lmer(P_mg_kg ~ Irrigation + (1|State), data = env))
+ggsave("Total P_mg_kg.pdf", p10, width = 5, height = 5.5)
+
+
+# Available Mn
+range(env$Mn)
+tapply(env$Mn, env$Irrigation, mean)
+p11 <- ggplot(data = env, aes(x = Irrigation, y = Mn, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Mn, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Mn (mg/kg)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(10, 260)) +
+  annotate("text", x = 1.5, y = 257, label = "P = 0.631", size = 6)
+
+p11
+anova(lmer(Mn ~ Irrigation + (1|State), data = env))
+ggsave("Mn.pdf", p11, width = 5, height = 5.5)
+
+
+# Available Cu
+range(env$Cu)
+tapply(env$Cu, env$Irrigation, mean)
+p12 <- ggplot(data = env, aes(x = Irrigation, y = Cu, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Cu, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available Cu (mg/kg)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(0.69, 17.5)) +
+  annotate("text", x = 1.5, y = 17.2, label = "P = 0.494", size = 6)
+
+p12
+anova(lmer(Cu ~ Irrigation + (1|State), data = env))
+ggsave("Cu.pdf", p12, width = 5, height = 5.5)
+
+
+# Wet aggregate stability
+range(env$Aggregate.stability)
+tapply(env$Aggregate.stability, env$Irrigation, mean)
+p13 <- ggplot(data = env, aes(x = Irrigation, y = Aggregate.stability, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Aggregate.stability, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Aggregate stability (%)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(4.8, 70.5)) +
+  annotate("text", x = 1.5, y = 70, label = "P = 0.050", size = 6)
+
+p13
+anova(lmer(Aggregate.stability ~ Irrigation + (1|State), data = env)) 
+ggsave("Aggregate.stability.pdf", p13, width = 5, height = 5.5)
+
+
+# gravimetric percent loss
+range(env$gravperc_loss)
+tapply(env$gravperc_loss, env$Irrigation, mean) 
+p14 <- ggplot(data = env, aes(x = Irrigation, y = gravperc_loss, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= gravperc_loss, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Gravperc loss per day", x = "") + 
+  theme.plot +
+  coord_cartesian(ylim = c(0.78, 1.31)) +
+  annotate("text", x = 1.5, y = 1.3, label = "P = 0.194", size = 6)
+
+p14
+anova(lmer(gravperc_loss ~ Irrigation + (1|State), data = env))  
+ggsave("gravperc_loss.pdf", p14, width = 5, height = 5.5)
+
+
+# Available phosphorus
+range(env$P_Bray1)
+tapply(env$P_Bray1, env$Irrigation, mean) 
+p15 <- ggplot(data = env, aes(x = Irrigation, y = P_Bray1, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= P_Bray1, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available phosphorus (mg/kg)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(4, 275)) +
+  annotate("text", x = 1.5, y = 273, label = "P = 0.284", size = 6)
+
+p15
+anova(lmer(P_Bray1 ~ Irrigation + (1|State), data = env))
+ggsave("P_Bray1.pdf", p15, width = 5, height = 5.5)
+
+
+# Available Na
+range(env$Na_PerC)
+tapply(env$Na_PerC, env$Irrigation, mean)
+p16 <- ggplot(data = env, aes(x = Irrigation, y = Na_PerC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Na_PerC, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available Na (%)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(0.14, 2.28)) +
+  annotate("text", x = 1.5, y = 2.27, label = "P = 0.626", size = 6)
+
+p16
+anova(lmer(Na_PerC ~ Irrigation + (1|State), data = env))
+ggsave("Na_PerC.pdf", p16, width = 5, height = 5.5)
+
+
+# Available Ca
+range(env$Ca_PerC)
+tapply(env$Ca_PerC, env$Irrigation, mean)
+p17 <- ggplot(data = env, aes(x = Irrigation, y = Ca_PerC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Ca_PerC, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available Ca (%)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(27, 92)) +
+  annotate("text", x = 1.5, y = 91, label = "P = 0.835", size = 6)
+
+p17
+anova(lmer(Ca_PerC ~ Irrigation + (1|State), data = env))
+ggsave("Ca_PerC.pdf", p17, width = 5, height = 5.5)
+
+
+# Available Mg
+range(env$Mg_PerC)
+tapply(env$Mg_PerC, env$Irrigation, mean)
+p18 <- ggplot(data = env, aes(x = Irrigation, y = Mg_PerC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= Mg_PerC, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available Mg (%)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(4.17, 34)) +
+  annotate("text", x = 1.5, y = 33, label = "P = 0.931", size = 6)
+
+p18
+anova(lmer(Mg_PerC ~ Irrigation + (1|State), data = env))
+ggsave("Mg_PerC.pdf", p18, width = 5, height = 5.5)
+
+
+# Available K
+range(env$K_PerC)
+tapply(env$K_PerC, env$Irrigation, mean)
+p19 <- ggplot(data = env, aes(x = Irrigation, y = K_PerC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= K_PerC, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "Available K (%)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(0.84, 6.9)) +
+  annotate("text", x = 1.5, y = 6.8, label = "P = 0.336", size = 6)
+
+p19
+anova(lmer(K_PerC ~ Irrigation + (1|State), data = env))
+ggsave("K_PerC.pdf", p19, width = 5, height = 5.5)
+
+
+# DNA concentration
+range(env$DNA_qubit)
+tapply(env$DNA_qubit, env$Irrigation, mean)
+p20 <- ggplot(data = env, aes(x = Irrigation, y = DNA_qubit, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= DNA_qubit, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "DNA_qubit (ng/ul)", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(9409, 66500)) +
+  annotate("text", x = 1.5, y = 66300, label = "P = 0.072", size = 6)
+
+p20
+anova(lmer(DNA_qubit ~ Irrigation + (1|State), data = env)) # P = 0.02196 *
+ggsave("DNA_qubit.pdf", p20, width = 5, height = 5.5)
+
+
+# Calculated N relase
+range(env$CalcNRelease_N)
+tapply(env$CalcNRelease_N, env$Irrigation, mean)
+p21 <- ggplot(data = env, aes(x = Irrigation, y = CalcNRelease_N, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= CalcNRelease_N, fill=Irrigation), size=1.5, height=0.02, width=0.1, alpha= 0.6) + 
+  labs(y = "CalcNRelease_N_acre", x = "") + 
+  theme.plot + 
+  coord_cartesian(ylim = c(40, 108)) +
+  annotate("text", x = 1.5, y = 106, label = "P = 0.213", size = 6)
+        
+p21
+anova(lmer(CalcNRelease_N ~ Irrigation + (1|State), data = env))
+ggsave("CalcNRelease_N.pdf", p21, width = 5, height = 5.5)
+
+
+# Microbial biomass
+env.bio <- env %>% filter(!is.na(Biomass)) # There are four NA values needed to be removed
+range(env$Biomass)
+which(env$Biomass > 485) # check and remove outlier which is extremely high
+env.b <- env.bio[-41,]
+tapply(env.b$Biomass, env.b$Irrigation, mean)
+p22 <- ggplot(data = env, aes(x = Irrigation, y = Biomass, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0")) +  
+  labs(y = "Microbial biomass (μg C g-1 soil)", x = "") + 
+  theme.plot +
+  scale_y_continuous(limits = c(0, 485), breaks = seq(0, 510, 100)) +
+  annotate("text", x = 1.5, y = 480, label = "P = 0.401", size = 6)
+
+p22
+anova(lmer(Biomass ~ Irrigation + (1|State), data = env.b))
+ggsave("Microbial biomass.pdf", p22, width = 5, height = 5.5)
+
+
+
+#*********************************available Fe/Zn ratio******************************
+# available Fe
+range(env$Fe)
+tapply(env$Fe, env$Irrigation, mean)
+p23 <- ggplot(data = env, aes(x = Irrigation, y = Fe, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(width = 0.1, size=2, alpha= 0.3) +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0")) + 
+  labs(y = "Available Fe (mg/kg)", x = "") +
+  theme.plot + 
+  ylim(95, 505) +
+  annotate("text", x = 1.5, y = 500, label = "P = 0.540", size = 6)
+
+p23
+anova(lmer(Fe ~ Irrigation + (1|State), data = env))
+ggsave("Fe.pdf", p23, width = 5, height = 5.5)
+
+
+# available Zn
+range(env$Zn)
+tapply(env$Zn, env$Irrigation, mean)
+p24 <- ggplot(data = env, aes(x = Irrigation, y = Zn, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  geom_jitter(width = 0.1, size=2, alpha= 0.3) +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0")) +
+  labs(y = "Available Zn (mg/kg)", x = "") +
+  theme.plot + 
+  ylim(1.18, 25.5) +
+  annotate("text", x = 1.5, y = 25, label = "P = 0.239", size = 6)
+
+p24
+anova(lmer(Zn ~ Irrigation + (1|State), data = env))
+ggsave("Zn.pdf", p24, width = 5, height = 5.5)
+
+
+# available Fe:Zn ratio
+range(env$Fe.Zn_ratio)
+tapply(env$Fe.Zn_ratio, env$Irrigation, mean)
+p25 <- ggplot(data = env, aes(x = Irrigation, y = Fe.Zn_ratio, fill=Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) + 
+  labs(y = "Fe:Zn ratio", x = "") +
+  theme.plot + 
+  coord_cartesian(ylim = c(7.79, 170)) +
+  annotate("text", x = 1.5, y = 165, label = "P = 0.222", size = 6)
+
+p25
+anova(lmer(Fe.Zn_ratio ~ Irrigation + (1|State), data = env))
+ggsave("Fe-Zn.ratio.pdf", p25, width = 5, height = 5.5)
+
+
+# NDVI in 2021
+range(env$NDVI.2021)
+p26 <- ggplot(data = env, aes(x = Irrigation, y = NDVI.2021, fill=Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  geom_jitter(data=env, aes(x=Irrigation, y= NDVI.2021, fill=Irrigation), size=2, height=0.02, width=0.1, alpha= 0.3) + 
+  labs(y = "NDVI", x = "") +
+  theme.plot +
+  coord_cartesian(ylim = c(0.49, 0.85)) +
+  annotate("text", x = 1.5, y = 0.85, label = "P = 0.088", size = 6)
+
+p26
+anova(lmer(NDVI.2021 ~ Irrigation + (1|State), data = env))
+ggsave("NDVI.pdf", p26, width = 5, height = 5.5)
+
+```
+

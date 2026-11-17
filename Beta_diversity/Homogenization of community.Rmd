@@ -1,0 +1,269 @@
+---
+title: "Homogenization of community"
+author: "Jipeng Luo"
+date: "2026-11-11"
+output: pdf_document
+---
+
+# Taxonomic and functional homogenization in irrigated and non-irrigated fields
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+library(vegan)
+library(dplyr)
+library(ggplot2)
+```
+
+# Import data
+
+```{r}
+# 1. Metadata
+design <- read.csv("./Homogenization_analysis/Data/Metadata.csv", header = TRUE, row.names = 1)
+
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# 2. Select the same number of samples at random as there are non-irrigated samples.
+set.seed(12345)
+nonirr.samples <- sample(rownames(design.unirr), size = 23, replace = FALSE)
+
+# 3. Taxonomic Community 
+comm <- read.csv("./Homogenization_analysis/Data/RPKM.species.abundance.csv", header = TRUE, row.names = 1, check.names = FALSE)
+
+# 4. Sample selection
+# 46 samples
+selected.samples <- c(rownames(design.irr),  nonirr.samples)
+
+stopifnot(all(selected.samples %in% colnames(comm)))
+
+comm.new01 <- comm[ , selected.samples, drop = FALSE]
+
+# Filter low-abundance features
+comm.new01 <- comm.new01[rowSums(comm.new01) > 10,  ,  drop = FALSE]
+
+# Samples × features
+comm.new <- t(comm.new01)
+
+design.new <- design[rownames(comm.new), , drop = FALSE]
+
+design.new$Irrigation <- factor(design.new$Irrigation, levels = c("non-irrigated", "irrigated"))
+
+stopifnot(all(rowSums(comm.new) > 0))
+
+# 5. Calculate dissimilarity
+jac_dist <- vegdist(comm.new,  method = "jaccard",  binary = T) # ignore abundance, consider presence
+
+# 6. Convert to similarity
+jac_sim <- 1 - as.matrix(jac_dist)
+
+# 7. Function: within-group similarity
+calculate_similarity <- function(sim_matrix, metadata) {
+  
+  groups <- metadata$Irrigation
+  results <- list()
+  for (g in levels(groups)) {
+    samples <- rownames(metadata)[groups == g]
+    submat <- sim_matrix[
+      samples,
+      samples,
+      drop = FALSE
+    ]
+    
+    values <- submat[lower.tri(submat)]
+    results[[g]] <- data.frame(
+      Irrigation = g,
+      Similarity = values
+    )
+  }
+  
+  bind_rows(results)
+}
+
+# 8. Calculate within-group similarities
+jac_data <- calculate_similarity(jac_sim, design.new)
+
+# 9. Summarize
+jac_summary <- jac_data %>%
+  group_by(Irrigation) %>%
+  summarise(
+    Mean = mean(Similarity),
+    SD = sd(Similarity),
+    N_pairs = n(),
+    .groups = "drop"
+  )
+
+print(jac_summary)
+
+
+# 10. Relative change in similarity (%)
+relative_change <- function(df) {
+  irr <- df$Mean[df$Irrigation == "irrigated"]
+  unirr <- df$Mean[df$Irrigation == "non-irrigated"]
+  (irr - unirr) / unirr * 100
+}
+
+relative_change(jac_summary)
+
+```
+
+
+# Plot taxonomic homogenization
+
+```{r}
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(jac_data$Similarity)
+p1 <- ggplot(jac_data, aes(x = Irrigation, y = Similarity, fill = Irrigation)) +
+  geom_violin(linewidth= 0.3, size= 0.2, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.16, size= 0.8, fill= "white") +
+  geom_jitter(size= 1.5, width = 0.12, alpha= 0.2) +
+  labs(x = "", y = "Taxonomic similarity", title = "") +
+  theme_bw() + scale_fill_manual(values = colors) +
+  theme(axis.title = element_text(colour = "black", size = 16),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(colour = "black", size = 16),
+        legend.position = "none",
+        panel.border = element_rect(color="black", size=1),
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.5)) + ylim(0.66, 0.925)
+
+p1
+ggsave("./Homogenization_analysis/Output/Taxonomic Homogenization_(jaccard).pdf", p1, width = 4.5, height = 5)
+
+
+# Statistical test
+t.test(Similarity ~ Irrigation, var.equal = F, data = jac_data)   # t= 5.24, p = 2.515e-07***
+wilcox.test(Similarity ~ Irrigation, data = jac_data)   # W = 39902, p-value = 1.57e-06***
+```
+
+
+# Functional homogenization
+
+```{r}
+# 1. Metadata
+design <- read.csv("./Homogenization_analysis/Data/Metadata.csv", header = TRUE, row.names = 1)
+
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# 2. Select the same number of samples at random as there are non-irrigated samples.
+set.seed(12345)
+nonirr.samples <- sample(rownames(design.unirr), size = 23, replace = FALSE)
+
+# 3. Taxonomic Community 
+comm <- read.csv("./Homogenization_analysis/Data/RPKM.KO.abundance_9353.csv", header = TRUE, row.names = 1, check.names = FALSE)
+
+# 4. Sample selection
+# 46 samples
+selected.samples <- c(rownames(design.irr),  nonirr.samples)
+
+stopifnot(all(selected.samples %in% colnames(comm)))
+
+comm.new01 <- comm[ , selected.samples, drop = FALSE]
+
+# Filter low-abundance features
+comm.new01 <- comm.new01[rowSums(comm.new01) > 10,  ,  drop = FALSE]
+
+# Samples × features
+comm.new <- t(comm.new01)
+
+design.new <- design[rownames(comm.new), , drop = FALSE]
+
+design.new$Irrigation <- factor(design.new$Irrigation, levels = c("non-irrigated", "irrigated"))
+
+stopifnot(all(rowSums(comm.new) > 0))
+
+# 5. Calculate dissimilarity
+jac_dist <- vegdist(comm.new,  method = "jaccard",  binary = T) # ignore abundance, consider presence
+
+# 6. Convert to similarity
+jac_sim <- 1 - as.matrix(jac_dist)
+
+# 7. Function: within-group similarity
+calculate_similarity <- function(sim_matrix, metadata) {
+  
+  groups <- metadata$Irrigation
+  results <- list()
+  for (g in levels(groups)) {
+    samples <- rownames(metadata)[groups == g]
+    submat <- sim_matrix[
+      samples,
+      samples,
+      drop = FALSE
+    ]
+    
+    values <- submat[lower.tri(submat)]
+    results[[g]] <- data.frame(
+      Irrigation = g,
+      Similarity = values
+    )
+  }
+  
+  bind_rows(results)
+}
+
+# 8. Calculate within-group similarities
+jac_data <- calculate_similarity(jac_sim, design.new)
+
+# 9. Summarize
+jac_summary <- jac_data %>%
+  group_by(Irrigation) %>%
+  summarise(
+    Mean = mean(Similarity),
+    SD = sd(Similarity),
+    N_pairs = n(),
+    .groups = "drop"
+  )
+
+print(jac_summary)
+
+
+# 10. Relative change in similarity (%)
+relative_change <- function(df) {
+  irr <- df$Mean[df$Irrigation == "irrigated"]
+  unirr <- df$Mean[df$Irrigation == "non-irrigated"]
+  (irr - unirr) / unirr * 100
+}
+
+relative_change(jac_summary)
+```
+
+
+# Plot functional homogenization
+
+```{r}
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(jac_data$Similarity)
+p2 <- ggplot(jac_data, aes(x = Irrigation, y = Similarity, fill = Irrigation)) +
+  geom_violin(linewidth= 0.3, size= 0.2, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.16, size= 0.8, fill= "white") +
+  geom_jitter(size= 1.5, width = 0.12, alpha= 0.2) +
+  labs(x = "", y = "Functional similarity", title = "") +
+  theme_bw() + scale_fill_manual(values = colors) +
+  theme(axis.title = element_text(colour = "black", size = 16),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(colour = "black", size = 16),
+        legend.position = "none",
+        panel.border = element_rect(color="black", size=1),
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.5)) + ylim(0.849, 0.975)
+
+p2
+ggsave("./Homogenization_analysis/Output/Functional Homogenization_(jaccard).pdf", p2, width = 4.5, height = 5)
+
+
+# Statistical test
+wilcox.test(Similarity ~ Irrigation, data = jac_data)   # W = 38199, p < 0.001***
+```
+
+

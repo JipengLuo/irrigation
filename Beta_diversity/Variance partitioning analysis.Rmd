@@ -1,0 +1,453 @@
+---
+title: "Variance partitioning analysis (VPA)"
+author: "Jipeng Luo"
+date: "2026-11-17"
+output: pdf_document
+---
+
+## Variance partitioning analysis
+
+## Clear workspace and set directory
+
+```{r setup}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
+# Load packages
+
+```{r}
+library(vegan)
+library(geosphere)
+```
+
+
+# select non-irrigated samples
+
+```{r}
+design <- read.csv("./Variance_partitioning_analysis/Data/Metadata.csv", header = T,row.names = 1)
+# Select irrigated  samples
+irrigated.sample <- rownames(design)[design$Irrigation == "irrigated"]
+# Choose non-irrigated samples
+unirrigated.sample <- rownames(design)[design$Irrigation == "non-irrigated"]
+
+set.seed(1234)
+comm_data01 <- read.csv("./Variance_partitioning_analysis/Data/RPKM.species.abundance.csv", header = T, row.names = 1)
+comm_data02 <- comm_data01[,rownames(design)]
+comm.irr <- comm_data02[,irrigated.sample]
+comm.unirr <- comm_data02[,unirrigated.sample]
+
+# Soil properties
+env_data.all <- read.csv("./Variance_partitioning_analysis/Data/Soil_properties_gb_imputed.csv", header = T, row.names = 1)
+env_data.all.unirr <- env_data.all[unirrigated.sample,]
+
+# Spatial data (PCNM1, PCNM2)
+pcnm_vectors <- env_data.all.unirr[,c(1,2)]
+# Climatic data
+climate <- env_data.all.unirr[,c(37,38)]
+```
+
+
+# Variation partitioning analysis of taxonomic communities in non-irrigated fields
+
+```{r}
+#===========================check collinearity=================================
+# remove factors with vif > 20
+# pure soil physico-chemical properties
+colnames(env_data.all.unirr)
+env_data.unirr <- env_data.all.unirr[ ,-c(1,2,3,6,7,8,10:12,13:16,18,19,28:38)]
+env_data.norm.unirr <- scale(env_data.unirr)
+colnames(env_data.all.unirr)
+
+# Combine variables
+explanatory_vars <- cbind(pcnm_vectors, env_data.norm.unirr, climate)
+
+# Hellinger transformation
+comm_data_hel <- decostand(comm.unirr, method = "hellinger")
+
+# Initial and complete models
+rda_null <- rda(t(comm_data_hel) ~ 1, data = explanatory_vars)
+rda_full <- rda(t(comm_data_hel) ~ ., data = explanatory_vars)
+
+# Check for multicollinearity; ensure that the VIF for all variables is less than 20
+vif_result <- vif.cca(rda_full)
+print(round(vif_result, 3))  # keep factors with vif < 20, which indicates non-collinear factors.
+
+# non-irrigated samples
+comm.unirr <- comm_data02[,unirrigated.sample]
+# Calculate Bray-Curtis
+comm_dist <- vegdist(t(comm.unirr), method = "bray")
+
+# Select non-collinear soil properties for the variance partitioning analysis.
+env_data.norm.sig <- env_data.norm.unirr[,c('SM.M10','bulk.density','pH','Mn','Fe','Zn','Cu','Sand','Aggregate.stability','gravperc_loss')] # 'pH','gravperc_loss','Aggregate.stability'
+
+# env_data plus climate
+env_data.norm.climate <- cbind(env_data.norm.sig, as.matrix(climate))
+
+
+#=========================Variation partioning analysis (VPA)===========================
+# Community hellinger transformation
+comm_data_hel <- decostand(t(comm.unirr), method = "hellinger")
+
+# Model VPA of Soil properties, spatial effect, climatic factors
+varpart_result <- varpart(
+  comm_data_hel,                  # community data
+  env_data.norm.sig,              # soil property effect
+  as.matrix(pcnm_vectors$PCNM2),  # spatial effect
+  as.matrix(climate)              # climatic effect
+)
+
+print(varpart_result)
+png(filename = "./Variance_partitioning_analysis/Output/Variation_partitioning_Taxonomy_non-irrigated.png", width = 2400, height = 2000, res = 300)
+plot(varpart_result, bg = c("hotpink","skyblue","forestgreen","yellow"))
+dev.off()
+
+
+# Model VPA of environmental effect, climatic factors
+varpart_result02 <- varpart(
+  comm_data_hel,            # community data
+  env_data.norm.climate,    # The combined effect of soil and climate is perceived as the total environmental effect.
+  as.matrix(pcnm_vectors$PCNM2)
+)
+
+print(varpart_result02)
+plot(varpart_result02, bg = c("hotpink","skyblue","forestgreen"))
+
+# Species sorting effect
+pure_env <- varpart_result02$part$indfract$Adj.R.squared[1]  
+# Spatial-related effect refers to dispersal limitation effect
+pure_space <- varpart_result02$part$indfract$Adj.R.squared[2]
+
+# The ratio of species sorting to dispersal limitation effect (SDER)
+sder <- pure_env / pure_space  # 8.99
+
+cat("Pure environmental effect (species sorting):", pure_env, "\n")
+cat("Pure spatial effect (dispersal limitation):", pure_space, "\n")
+cat("SDER (Species Sorting to Dispersal Limitation Effect Ratio):", sder, "\n")
+
+```
+
+
+# Variation partitioning analysis of taxonomic communities in irrigated fields
+
+```{r}
+# Select irrigated  samples
+irrigated.sample <- rownames(design)[design$Irrigation == "irrigated"]
+
+#==========================Taxonomic communities===========================
+# Import taxonomic abundance data
+set.seed(1234)
+comm_data01 <- read.csv("./Variance_partitioning_analysis/Data/RPKM.species.abundance.csv", header = T, row.names = 1)
+comm_data02 <- comm_data01[,rownames(design)]
+comm.irr <- comm_data02[,irrigated.sample]
+comm.unirr <- comm_data02[,unirrigated.sample]
+
+# Environmental Data (Physicochemical, and Climatic)
+env_data.all <- read.csv("./Variance_partitioning_analysis/Data/Soil_properties_gb_imputed.csv", header = T, row.names = 1)
+env_data.all.irr <- env_data.all[irrigated.sample,]
+colnames(env_data.all.irr)
+
+# Spatial and climatic data
+pcnm_vectors <- env_data.all.irr[,c(1,2)]
+climate <- env_data.all.irr[,c(37,38)]
+
+
+#==========================Checking for collinearity================================
+# Remove variables with severe multicollinearity (VIF > 20)
+# Pure soil physico-chemical properties
+colnames(env_data.all.irr)
+env_data.irr <- env_data.all.irr[ ,-c(1,2,3,6,7,10,12:18,19,23,28,29,30,31,33:38)]
+env_data.norm.irr <- scale(env_data.irr)  # -c(1,2,3,6,7,10,11,12,14:19,23,27,29,33:38)
+colnames(env_data.norm.irr)
+
+# Combine Explanatory Variables
+explanatory_vars <- cbind(pcnm_vectors[2], env_data.norm.irr, climate)
+# Hellinger transformation
+comm_data_hel <- decostand(comm.irr, method = "hellinger")
+
+# Initial and complete models; species data rows are labeled by species name
+rda_null <- rda(t(comm_data_hel) ~ 1, data = explanatory_vars)
+rda_full <- rda(t(comm_data_hel) ~ ., data = explanatory_vars)
+
+# Checking for Collinearity
+vif_result <- vif.cca(rda_full)
+print(round(vif_result, 3))   # keep factors with vif < 20, which indicates non-collinear factors.
+
+
+# Select irrigated samples
+comm.irr <- comm_data02[,irrigated.sample]
+# Bray-Curtis distance
+comm_dist <- vegdist(t(comm.irr), method = "bray")
+
+# Select non-collinear soil properties for the variance partitioning analysis.
+env_data.norm.sig <- env_data.norm.irr[,c('SM.M10','bulk.density','CN_ratio','pH','OM','Mn','Fe','Zn','Cu','Sand',
+                                          'Aggregate.stability','gravperc_loss','K_PerC')]
+# env_data plus climate
+env_data.norm.climate <- cbind(env_data.norm.sig, as.matrix(climate))
+
+
+#=====================Variation partioning analysis==========================
+# Community hellinger transformation
+comm_data_hel <- decostand(t(comm.irr), method = "hellinger")
+
+# Model VPA of Soil properties, spatial effect, climatic factors
+varpart_result <- varpart(
+  comm_data_hel,                  # community data
+  env_data.norm.sig,              # soil property effect
+  as.matrix(pcnm_vectors$PCNM1),  # spatial effect
+  as.matrix(climate)              # climatic effect
+)
+
+print(varpart_result)
+png(filename = "./Variance_partitioning_analysis/Output/Variation_partitioning_Taxonomy_irrigated.png", width = 2400, height = 2000, res = 300)
+plot(varpart_result, bg = c("hotpink","skyblue","forestgreen","yellow"))
+dev.off()
+
+# Model VPA of environmental effect, climatic factors
+varpart_result02 <- varpart(
+  comm_data_hel,            # community data
+  env_data.norm.climate,    # The combined effect of soil and climate is perceived as the total environmental effect.
+  as.matrix(pcnm_vectors$PCNM1)
+)
+
+print(varpart_result02)
+plot(varpart_result02, bg = c("hotpink","skyblue","forestgreen"))
+
+
+# Extract environmental effects and spatial effects
+pure_env <- varpart_result02$part$indfract$Adj.R.squared[1]
+pure_space <- varpart_result02$part$indfract$Adj.R.squared[2] 
+
+# calculate SDER
+sder <- pure_env / pure_space  # 13.5 : 1
+
+cat("Pure environmental effect (species sorting):", pure_env, "\n")
+cat("Pure spatial effect (dispersal limitation):", pure_space, "\n")
+cat("SDER (Species Sorting to Dispersal Limitation Effect Ratio):", sder, "\n")
+```
+
+
+# Variation partitioning analysis of functional communities in non-irrigated fields
+
+```{r}
+#===========================non-nirrigated farms=================================
+design <- read.csv("./Variance_partitioning_analysis/Data/Metadata.csv", header = T,row.names = 1)
+# Choose non-irrigated samples
+unirrigated.sample <- rownames(design)[design$Irrigation == "non-irrigated"]
+
+set.seed(1234)
+comm_data01 <- read.csv("./Variance_partitioning_analysis/Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+comm_data02 <- comm_data01[,rownames(design)]
+comm.irr <- comm_data02[,irrigated.sample]
+comm.unirr <- comm_data02[,unirrigated.sample]
+
+# Soil properties
+env_data.all <- read.csv("./Variance_partitioning_analysis/Data/Soil_properties_gb_imputed.csv", header = T, row.names = 1)
+env_data.all.unirr <- env_data.all[unirrigated.sample,]
+
+# Spatial data (PCNM1, PCNM2)
+pcnm_vectors <- env_data.all.unirr[,c(1,2)]
+# Climatic data
+climate <- env_data.all.unirr[,c(37,38)]
+
+
+#===========================check collinearity=================================
+# remove factors with vif > 20
+# pure soil physico-chemical properties
+colnames(env_data.all.unirr)
+env_data.unirr <- env_data.all.unirr[ ,-c(1,2,3,6,7,8,10:12,13:16,18,19,28:38)]
+env_data.norm.unirr <- scale(env_data.unirr)
+colnames(env_data.all.unirr)
+
+# Combine variables
+explanatory_vars <- cbind(pcnm_vectors, env_data.norm.unirr, climate)
+
+# Hellinger transformation
+comm_data_hel <- decostand(comm.unirr, method = "hellinger")
+
+# Initial and complete models
+rda_null <- rda(t(comm_data_hel) ~ 1, data = explanatory_vars)
+rda_full <- rda(t(comm_data_hel) ~ ., data = explanatory_vars)
+
+# Check for multicollinearity; ensure that the VIF for all variables is less than 20
+vif_result <- vif.cca(rda_full)
+print(round(vif_result, 3))  # keep factors with vif < 20, which indicates non-collinear factors.
+
+# non-irrigated samples
+comm.unirr <- comm_data02[,unirrigated.sample]
+# Calculate Bray-Curtis
+comm_dist <- vegdist(t(comm.unirr), method = "bray")
+
+# Select non-collinear soil properties for the variance partitioning analysis.
+env_data.norm.sig <- env_data.norm.unirr[,c('SM.M10','bulk.density','pH','Mn','Fe','Zn','Cu','Sand','Aggregate.stability','gravperc_loss')] # 'pH','gravperc_loss','Aggregate.stability'
+
+# env_data plus climate
+env_data.norm.climate <- cbind(env_data.norm.sig, as.matrix(climate))
+
+
+#=========================Variation partioning analysis (VPA)===========================
+# Community hellinger transformation
+comm_data_hel <- decostand(t(comm.unirr), method = "hellinger")
+
+# Model VPA of Soil properties, spatial effect, climatic factors
+varpart_result <- varpart(
+  comm_data_hel,                  # community data
+  env_data.norm.sig,              # soil property effect
+  as.matrix(pcnm_vectors$PCNM2),  # spatial effect
+  as.matrix(climate)              # climatic effect
+)
+
+print(varpart_result)
+png(filename = "./Variance_partitioning_analysis/Output/Variation_partitioning_Function_non-irrigated.png", width = 2400, height = 2000, res = 300)
+plot(varpart_result, bg = c("hotpink","skyblue","forestgreen","yellow"))
+dev.off()
+
+
+# Model VPA of environmental effect, climatic factors
+varpart_result02 <- varpart(
+  comm_data_hel,            # community data
+  env_data.norm.climate,    # The combined effect of soil and climate is perceived as the total environmental effect.
+  as.matrix(pcnm_vectors$PCNM2)
+)
+
+print(varpart_result02)
+plot(varpart_result02, bg = c("hotpink","skyblue","forestgreen"))
+
+# Species sorting effect
+pure_env <- varpart_result02$part$indfract$Adj.R.squared[1]  
+# Spatial-related effect refers to dispersal limitation effect
+pure_space <- varpart_result02$part$indfract$Adj.R.squared[2]
+
+# The ratio of species sorting to dispersal limitation effect (SDER)
+sder <- pure_env / pure_space  # 9.63
+
+cat("Pure environmental effect (species sorting):", pure_env, "\n")
+cat("Pure spatial effect (dispersal limitation):", pure_space, "\n")
+cat("SDER (Species Sorting to Dispersal Limitation Effect Ratio):", sder, "\n")
+
+```
+
+
+# Variation partitioning analysis of functional communities in irrigated fields
+
+```{r}
+# Select irrigated  samples
+irrigated.sample <- rownames(design)[design$Irrigation == "irrigated"]
+
+#==========================Taxonomic communities===========================
+# Import taxonomic abundance data
+set.seed(1234)
+comm_data01 <- read.csv("./Variance_partitioning_analysis/Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+comm_data02 <- comm_data01[,rownames(design)]
+comm.irr <- comm_data02[,irrigated.sample]
+comm.unirr <- comm_data02[,unirrigated.sample]
+
+# Environmental Data (Physicochemical, and Climatic)
+env_data.all <- read.csv("./Variance_partitioning_analysis/Data/Soil_properties_gb_imputed.csv", header = T, row.names = 1)
+env_data.all.irr <- env_data.all[irrigated.sample,]
+colnames(env_data.all.irr)
+
+# Spatial and climatic data
+pcnm_vectors <- env_data.all.irr[,c(1,2)]
+climate <- env_data.all.irr[,c(37,38)]
+
+
+#==========================Checking for collinearity================================
+# Remove variables with severe multicollinearity (VIF > 20)
+# Pure soil physico-chemical properties
+colnames(env_data.all.irr)
+env_data.irr <- env_data.all.irr[ ,-c(1,2,3,6,7,10,12:18,19,23,28,29,30,31,33:38)]
+env_data.norm.irr <- scale(env_data.irr)  # -c(1,2,3,6,7,10,11,12,14:19,23,27,29,33:38)
+colnames(env_data.norm.irr)
+
+# Combine Explanatory Variables
+explanatory_vars <- cbind(pcnm_vectors[2], env_data.norm.irr, climate)
+# Hellinger transformation
+comm_data_hel <- decostand(comm.irr, method = "hellinger")
+
+# Initial and complete models; species data rows are labeled by species name
+rda_null <- rda(t(comm_data_hel) ~ 1, data = explanatory_vars)
+rda_full <- rda(t(comm_data_hel) ~ ., data = explanatory_vars)
+
+# Checking for Collinearity
+vif_result <- vif.cca(rda_full)
+print(round(vif_result, 3))   # keep factors with vif < 20, which indicates non-collinear factors.
+
+
+# Select irrigated samples
+comm.irr <- comm_data02[,irrigated.sample]
+# Bray-Curtis distance
+comm_dist <- vegdist(t(comm.irr), method = "bray")
+
+# Select non-collinear soil properties for the variance partitioning analysis.
+env_data.norm.sig <- env_data.norm.irr[,c('SM.M10','bulk.density','CN_ratio','pH','OM','Mn','Fe','Zn','Cu','Sand',
+                                          'Aggregate.stability','gravperc_loss','K_PerC')]
+# env_data plus climate
+env_data.norm.climate <- cbind(env_data.norm.sig, as.matrix(climate))
+
+
+#=====================Variation partioning analysis==========================
+# Community hellinger transformation
+comm_data_hel <- decostand(t(comm.irr), method = "hellinger")
+
+# Model VPA of Soil properties, spatial effect, climatic factors
+varpart_result <- varpart(
+  comm_data_hel,                  # community data
+  env_data.norm.sig,              # soil property effect
+  as.matrix(pcnm_vectors$PCNM1),  # spatial effect
+  as.matrix(climate)              # climatic effect
+)
+
+print(varpart_result)
+png(filename = "./Variance_partitioning_analysis/Output/Variation_partitioning_Function_irrigated.png", width = 2400, height = 2000, res = 300)
+plot(varpart_result, bg = c("hotpink","skyblue","forestgreen","yellow"))
+dev.off()
+
+# Model VPA of environmental effect, climatic factors
+varpart_result02 <- varpart(
+  comm_data_hel,            # community data
+  env_data.norm.climate,    # The combined effect of soil and climate is perceived as the total environmental effect.
+  as.matrix(pcnm_vectors$PCNM1)
+)
+
+print(varpart_result02)
+plot(varpart_result02, bg = c("hotpink","skyblue","forestgreen"))
+
+
+# Extract environmental effects and spatial effects
+pure_env <- varpart_result02$part$indfract$Adj.R.squared[1]
+pure_space <- varpart_result02$part$indfract$Adj.R.squared[2] 
+
+# calculate SDER
+sder <- pure_env / pure_space  # 11.69 : 1
+
+cat("Pure environmental effect (species sorting):", pure_env, "\n")
+cat("Pure spatial effect (dispersal limitation):", pure_space, "\n")
+cat("SDER (Species Sorting to Dispersal Limitation Effect Ratio):", sder, "\n")
+```
+
+
+
+#=============Plot the result of selection / dispersal effect ratio (SDER)============
+
+```{r}
+library(ggplot2)
+data <- data.frame(value = c(13.5, 8.99, 11.69,9.63),
+                   group = c("Taxonomy","Taxonomy","Function","Function"),
+                   Treatment = c("Irrigated","non-irrigated","Irrigated","non-irrigated"))
+data$group <- factor(data$group, levels = c("Taxonomy","Function"))
+
+theme_set(theme_bw())
+p01 <- ggplot(data, aes(x = group, y = value)) +
+  geom_bar(aes(fill = Treatment), stat = "identity", position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("#4169B2", "#BB2BA0")) +
+  xlab("") + 
+  ylab("Selection / dispersal effect ratio") +
+  theme(axis.text = element_text(size = 16, colour = "black"),
+        axis.title = element_text(size = 16, colour = "black"))
+
+p01
+ggsave("./Variance_partitioning_analysis/Output/Selection - dispersal effect ratio.pdf", p01, width = 5, height = 5)
+```
+
