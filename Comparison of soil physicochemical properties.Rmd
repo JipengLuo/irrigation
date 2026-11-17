@@ -8,6 +8,13 @@ output: pdf_document
 
 ## Comparison of soil physicochemical properties between irrigated and non-irrigated fields
 
+# Retrieve and set the working directory
+```{r}
+rm(list=ls())
+getwd()
+setwd("~/GitHub/irrigation/Beta_diversity")
+```
+
 ## Load packages and functions
 
 ```{r}
@@ -20,12 +27,12 @@ library(ggplot2)
 ## Import dataset
 
 ```{r}
-metadata1 <- read.csv("Metadata.csv", header = T, row.names = 1)
+metadata1 <- read.csv("./Soil_properties/Data/Metadata.csv", header = T, row.names = 1)
 # choose irrigated and non-irrigated fields
 metadata1 <- subset(metadata1, Irrigation %in% c("irrigated","non-irrigated"))
-env1 <- read.csv("Vetted_soil_properties.csv", row.names = 1, header = T)
-metadata <- metadata1[rownames(metadata1) %in% rownames(env),]
-env2 <- otutab1[rownames(metadata),]
+env1 <- read.csv("./Soil_properties/Data/Vetted_soil_properties.csv", row.names = 1, header = T)
+metadata <- metadata1[rownames(metadata1) %in% rownames(env1),]
+env2 <- env1[rownames(metadata),]
 env <- cbind(metadata, env2)
 ```
 
@@ -58,7 +65,7 @@ p1 <- ggplot(data = env, aes(x = Irrigation, y = SM.M10, fill = Irrigation)) +
 
 p1
 anova(lmer(SM.M10 ~ Irrigation + (1|State), data = env))
-ggsave("Surface moisture.pdf", p1, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Surface moisture.pdf", p1, width = 5, height = 5.5)
 
 
 # Silt content
@@ -76,7 +83,7 @@ p2 <- ggplot(data = env, aes(x = Irrigation, y = Silt, fill = Irrigation)) +
 
 p2
 anova(lmer(Silt ~ Irrigation + (1|State), data = env))
-ggsave("Silt.pdf", p2, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Silt.pdf", p2, width = 5, height = 5.5)
 
 
 # Bulk density
@@ -96,7 +103,7 @@ p3 <- ggplot(data = env.bk, aes(x = Irrigation, y = bulk.density, fill = Irrigat
 
 p3
 anova(lmer(bulk.density ~ Irrigation + (1|State), data = env.bk))
-ggsave("Bulk.density.pdf", p3, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Bulk.density.pdf", p3, width = 5, height = 5.5)
 
 
 # Sand content
@@ -114,7 +121,7 @@ p4 <- ggplot(data = env, aes(x = Irrigation, y = Sand, fill = Irrigation)) +
 
 p4
 anova(lmer(Sand ~ Irrigation + (1|State), data = env))
-ggsave("Sand.pdf", p4, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Sand.pdf", p4, width = 5, height = 5.5)
 
 
 # pH value
@@ -133,7 +140,7 @@ p5 <- ggplot(data = env.ph, aes(x = Irrigation, y = pH, fill = Irrigation)) +
 
 p5
 anova(lmer(pH ~ Irrigation + (1|State), data = env.ph))
-ggsave("Soil pH.pdf", p5, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Soil pH.pdf", p5, width = 5, height = 5.5)
 
 
 # total carbon
@@ -151,7 +158,7 @@ p6 <- ggplot(data = env, aes(x = Irrigation, y = TC, fill = Irrigation)) +
 
 p6
 anova(lmer(TC ~ Irrigation + (1|State), data = env))
-ggsave("TC.pdf", p6, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/TC.pdf", p6, width = 5, height = 5.5)
 
 
 # Total nitrogen
@@ -169,7 +176,7 @@ p7 <- ggplot(data = env, aes(x = Irrigation, y = TN, fill = Irrigation)) +
 
 p7
 anova(lmer(TN ~ Irrigation + (1|State), data = env))
-ggsave("TN.pdf", p7, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/TN.pdf", p7, width = 5, height = 5.5)
 
 
 # C/N ratio
@@ -187,7 +194,7 @@ p8 <- ggplot(data = env, aes(x = Irrigation, y = CN_ratio, fill = Irrigation)) +
 
 p8
 anova(lmer(CN_ratio ~ Irrigation + (1|State), data = env))
-ggsave("CN_ratio.pdf", p8, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/CN_ratio.pdf", p8, width = 5, height = 5.5)
 
 
 # organic matter
@@ -205,7 +212,7 @@ p9 <- ggplot(data = env, aes(x = Irrigation, y = OM, fill = Irrigation)) +
 
 p9
 anova(lmer(OM ~ Irrigation + (1|State), data = env))
-ggsave("OM.pdf", p9, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/OM.pdf", p9, width = 5, height = 5.5)
 
 
 # total phosphorus
@@ -223,7 +230,7 @@ p10 <- ggplot(data = env, aes(x = Irrigation, y = P_mg_kg, fill = Irrigation)) +
 
 p10
 anova(lmer(P_mg_kg ~ Irrigation + (1|State), data = env))
-ggsave("Total P_mg_kg.pdf", p10, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Total P_mg_kg.pdf", p10, width = 5, height = 5.5)
 
 
 # Available Mn
@@ -241,7 +248,7 @@ p11 <- ggplot(data = env, aes(x = Irrigation, y = Mn, fill = Irrigation)) +
 
 p11
 anova(lmer(Mn ~ Irrigation + (1|State), data = env))
-ggsave("Mn.pdf", p11, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Mn.pdf", p11, width = 5, height = 5.5)
 
 
 # Available Cu
@@ -259,7 +266,7 @@ p12 <- ggplot(data = env, aes(x = Irrigation, y = Cu, fill = Irrigation)) +
 
 p12
 anova(lmer(Cu ~ Irrigation + (1|State), data = env))
-ggsave("Cu.pdf", p12, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Cu.pdf", p12, width = 5, height = 5.5)
 
 
 # Wet aggregate stability
@@ -277,7 +284,7 @@ p13 <- ggplot(data = env, aes(x = Irrigation, y = Aggregate.stability, fill = Ir
 
 p13
 anova(lmer(Aggregate.stability ~ Irrigation + (1|State), data = env)) 
-ggsave("Aggregate.stability.pdf", p13, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Aggregate.stability.pdf", p13, width = 5, height = 5.5)
 
 
 # gravimetric percent loss
@@ -295,7 +302,7 @@ p14 <- ggplot(data = env, aes(x = Irrigation, y = gravperc_loss, fill = Irrigati
 
 p14
 anova(lmer(gravperc_loss ~ Irrigation + (1|State), data = env))  
-ggsave("gravperc_loss.pdf", p14, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/gravperc_loss.pdf", p14, width = 5, height = 5.5)
 
 
 # Available phosphorus
@@ -313,7 +320,7 @@ p15 <- ggplot(data = env, aes(x = Irrigation, y = P_Bray1, fill = Irrigation)) +
 
 p15
 anova(lmer(P_Bray1 ~ Irrigation + (1|State), data = env))
-ggsave("P_Bray1.pdf", p15, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/P_Bray1.pdf", p15, width = 5, height = 5.5)
 
 
 # Available Na
@@ -331,7 +338,7 @@ p16 <- ggplot(data = env, aes(x = Irrigation, y = Na_PerC, fill = Irrigation)) +
 
 p16
 anova(lmer(Na_PerC ~ Irrigation + (1|State), data = env))
-ggsave("Na_PerC.pdf", p16, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Na_PerC.pdf", p16, width = 5, height = 5.5)
 
 
 # Available Ca
@@ -349,7 +356,7 @@ p17 <- ggplot(data = env, aes(x = Irrigation, y = Ca_PerC, fill = Irrigation)) +
 
 p17
 anova(lmer(Ca_PerC ~ Irrigation + (1|State), data = env))
-ggsave("Ca_PerC.pdf", p17, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Ca_PerC.pdf", p17, width = 5, height = 5.5)
 
 
 # Available Mg
@@ -367,7 +374,7 @@ p18 <- ggplot(data = env, aes(x = Irrigation, y = Mg_PerC, fill = Irrigation)) +
 
 p18
 anova(lmer(Mg_PerC ~ Irrigation + (1|State), data = env))
-ggsave("Mg_PerC.pdf", p18, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Mg_PerC.pdf", p18, width = 5, height = 5.5)
 
 
 # Available K
@@ -385,7 +392,7 @@ p19 <- ggplot(data = env, aes(x = Irrigation, y = K_PerC, fill = Irrigation)) +
 
 p19
 anova(lmer(K_PerC ~ Irrigation + (1|State), data = env))
-ggsave("K_PerC.pdf", p19, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/K_PerC.pdf", p19, width = 5, height = 5.5)
 
 
 # DNA concentration
@@ -403,7 +410,7 @@ p20 <- ggplot(data = env, aes(x = Irrigation, y = DNA_qubit, fill = Irrigation))
 
 p20
 anova(lmer(DNA_qubit ~ Irrigation + (1|State), data = env)) # P = 0.02196 *
-ggsave("DNA_qubit.pdf", p20, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/DNA_qubit.pdf", p20, width = 5, height = 5.5)
 
 
 # Calculated N relase
@@ -421,7 +428,7 @@ p21 <- ggplot(data = env, aes(x = Irrigation, y = CalcNRelease_N, fill = Irrigat
         
 p21
 anova(lmer(CalcNRelease_N ~ Irrigation + (1|State), data = env))
-ggsave("CalcNRelease_N.pdf", p21, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/CalcNRelease_N.pdf", p21, width = 5, height = 5.5)
 
 
 # Microbial biomass
@@ -441,7 +448,7 @@ p22 <- ggplot(data = env, aes(x = Irrigation, y = Biomass, fill = Irrigation)) +
 
 p22
 anova(lmer(Biomass ~ Irrigation + (1|State), data = env.b))
-ggsave("Microbial biomass.pdf", p22, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Microbial biomass.pdf", p22, width = 5, height = 5.5)
 
 
 
@@ -461,7 +468,7 @@ p23 <- ggplot(data = env, aes(x = Irrigation, y = Fe, fill = Irrigation)) +
 
 p23
 anova(lmer(Fe ~ Irrigation + (1|State), data = env))
-ggsave("Fe.pdf", p23, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Fe.pdf", p23, width = 5, height = 5.5)
 
 
 # available Zn
@@ -479,7 +486,7 @@ p24 <- ggplot(data = env, aes(x = Irrigation, y = Zn, fill = Irrigation)) +
 
 p24
 anova(lmer(Zn ~ Irrigation + (1|State), data = env))
-ggsave("Zn.pdf", p24, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Zn.pdf", p24, width = 5, height = 5.5)
 
 
 # available Fe:Zn ratio
@@ -496,7 +503,7 @@ p25 <- ggplot(data = env, aes(x = Irrigation, y = Fe.Zn_ratio, fill=Irrigation))
 
 p25
 anova(lmer(Fe.Zn_ratio ~ Irrigation + (1|State), data = env))
-ggsave("Fe-Zn.ratio.pdf", p25, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/Fe-Zn.ratio.pdf", p25, width = 5, height = 5.5)
 
 
 # NDVI in 2021
@@ -513,7 +520,7 @@ p26 <- ggplot(data = env, aes(x = Irrigation, y = NDVI.2021, fill=Irrigation)) +
 
 p26
 anova(lmer(NDVI.2021 ~ Irrigation + (1|State), data = env))
-ggsave("NDVI.pdf", p26, width = 5, height = 5.5)
+ggsave("./Soil_properties/Output/NDVI.pdf", p26, width = 5, height = 5.5)
 
 ```
 
