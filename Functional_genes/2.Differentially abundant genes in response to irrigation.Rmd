@@ -76,6 +76,7 @@ library(dplyr)
 
 differ.gene <- read.csv("./Output/irrigated vs non-irragated_differentially.abundant.csv", header = T, row.names = 1)
 kegg <- read.csv("./Data/kegg.pathway.table.csv", header = T, row.names = 1)
+mean.abund <- read.csv("./Output/KO_mean_relative_abundance_by_Irrigation_All.genes.csv", header = T, row.names = 1)
 
 # extract rownames of differ.gene data
 differ.row <- rownames(differ.gene)
@@ -87,6 +88,9 @@ matched_idx <- match(differ.row, kegg$KO)
 kegg_matched <- data.frame(diff_gene, kegg[matched_idx, ])
 print(kegg_matched)
 
-write.csv(kegg_matched, file = "./Output/irrigated vs non-irragated_differentially.abundant.csv")
+mean.abund01 <- mean.abund[rownames(kegg_matched),]
+kegg.mean <- cbind(kegg_matched, mean.abund01)
+
+write.csv(kegg.mean, file = "./Output/irrigated vs non-irragated_differentially.abundant.csv")
 ```
 

@@ -30,7 +30,7 @@ spec <- read.csv("./Data/Starch_genes_reference.csv", header = T, row.names = 1)
 gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
 gene.sum <- apply(gene, 2, sum)
 gene2 <- data.frame(design, gene.sum)
-wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 599, p-value = 0.754
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 608, p-value = 0.6746
 # Mean value
 tapply(gene2$gene.sum, gene2$Irrigation, mean)
 log2((2251-2254)/2251 + 1)  # -0.002
@@ -99,7 +99,7 @@ spec <- read.csv("./Data/Lignin_genes_reference.csv", header = T, row.names = 1)
 gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
 gene.sum <- apply(gene, 2, sum)
 gene2 <- data.frame(design, gene.sum)
-wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 745, p-value = 0.04135
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 522, p-value = 0.5583
 # Mean value
 tapply(gene2$gene.sum, gene2$Irrigation, mean)
 # Fold change
@@ -107,11 +107,11 @@ log2((3795-3860)/3795 + 1)   # -0.025
 
 
 # Carbon.fixation metabolic genes
-spec <- read.csv("./Data/Carbon_genes_reference.csv", header = T, row.names = 1)
+spec <- read.csv("./Data/Carbon_fixation_genes_reference.csv", header = T, row.names = 1)
 gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
 gene.sum <- apply(gene, 2, sum)
 gene2 <- data.frame(design, gene.sum)
-wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 745, p-value = 0.04135
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 646, p-value = 0.3847
 # Mean value
 tapply(gene2$gene.sum, gene2$Irrigation, mean)
 # Fold change
@@ -150,9 +150,9 @@ my_cols <- c(
 )
 
 # The FoldChange values calculated above
-dx <- data.frame(substrate = c("Starch","Hemicellulose","Cellulose",
-                               "Chitin","Pectin","Aromatics","Lignin","C.fixation","Methane"),
-                 log2FoldChange = c(-0.002, 0.016, 0.061, 0.126, 0.172, 0.021, -0.025, 0.005, -0.055))
+dx <- data.frame(substrate = c("Starch","Hemicellulose","Cellulose","Chitin","Pectin","Aromatics","Lignin",
+                               "C.fixation","Methane"),
+                 log2FoldChange = c(-0.002, 0.156, 0.061, 0.126, 0.172, 0.021, -0.025, 0.0052, -0.055))
   
 dx$substrate <- factor(dx$substrate, levels = c("Starch","Hemicellulose","Cellulose",
                                               "Chitin","Pectin","Aromatics","Lignin","C.fixation","Methane"))
@@ -186,7 +186,75 @@ rel_abundance_perc <- rel_abundance * 100
 print(rel_abundance_perc)
 
 write.csv(rel_abundance_perc, file = "./Output/Relative_abundance_percent_KO_count.csv")
+
+
+
+# ============================================================
+# Calculate mean relative abundance by Irrigation
+# ============================================================
+
+# 1. Ensure sample order matches metadata
+design.new <- design[
+  colnames(rel_abundance_perc),
+  ,
+  drop = FALSE
+]
+
+stopifnot(
+  identical(
+    colnames(rel_abundance_perc),
+    rownames(design.new)
+  )
+)
+
+# 2. Identify samples in each group
+irr_samples <- rownames(design.new)[
+  design.new$Irrigation == "irrigated"
+]
+
+nonirr_samples <- rownames(design.new)[
+  design.new$Irrigation == "non-irrigated"
+]
+
+# 3. Calculate mean relative abundance (%) for each KO
+mean_abundance <- data.frame(
+  KO = rownames(rel_abundance_perc),
+
+  mean.irr = rowMeans(
+    rel_abundance_perc[, irr_samples, drop = FALSE],
+    na.rm = TRUE
+  ),
+
+  mean.nonirr = rowMeans(
+    rel_abundance_perc[, nonirr_samples, drop = FALSE],
+    na.rm = TRUE
+  ),
+
+  check.names = FALSE
+)
+
+# 4. Calculate difference and log2 fold change
+mean_abundance$Difference <- (mean_abundance$mean.irr - mean_abundance$mean.nonirr) / mean_abundance$mean.nonirr
+
+# 5. View results
+head(mean_abundance)
+
+# 6. Export results
+write.csv(mean_abundance, "./Output/KO_mean_relative_abundance_by_Irrigation_All.genes.csv", row.names = FALSE)
 ```
 
+# Match the mean abundance table with the gene annotation.
+
+```{r}
+kegg <- read.csv("./Data/RPKM.KO.annotation_9353.csv", 
+                 header = TRUE, stringsAsFactors = FALSE, check.names = FALSE)
+
+kegg_sub <- kegg[kegg$KO %in% rownames(mean_abundance), ]
+rownames(kegg_sub) <- kegg_sub[,1]
+kegg_sub <- kegg_sub[,-1]
+
+mean_abundance01 <- kegg_sub %>%  left_join(mean_abundance, by = "KO")
+write.csv(mean_abundance01, "./Output/KO_mean_relative_abundance_by_Irrigation.csv", row.names = FALSE)
+```
 
 
