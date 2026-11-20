@@ -1,0 +1,20 @@
+,CNH2_Field_ID,State,Irrigation,Glade.experiment
+s05,IL006_S_A,IL,irrigated,irrigated center vs. unirrigated corners OR fields immediately adjacent
+s52,MI012_S_B,MI,irrigated,irrigated center vs. un-irrigated corners OR fields immediately adjacent
+s54,MI015_S_A,MI,irrigated,irrigated center vs. un-irrigated corners OR fields immediately adjacent
+s04,IL001_S_A,IL,irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s61,MI034_S_A,MI,irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s75,MIC3058_S_A,MI,irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s59,Dairy_I,MI,irrigated,"KBS dairy, long-term irrigation, pasture grass"
+s45,LTER_I,MI,irrigated,"KBS LTER N gradient experiment, soy, long-term irrigation"
+s87,NE_I,NR,irrigated,"NE LTAR, long-term irrigation experiment"
+s06,IL006_S_B,IL,non-irrigated,irrigated center vs. unirrigated corners OR fields immediately adjacent
+s51,MI012_S_A,MI,non-irrigated,irrigated center vs. un-irrigated corners OR fields immediately adjacent
+s53,MI012_S_C,MI,non-irrigated,irrigated center vs. un-irrigated corners OR fields immediately adjacent
+s55,MI015_S_B,MI,non-irrigated,irrigated center vs. un-irrigated corners OR fields immediately adjacent
+s12,IL001_S_B,IL,non-irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s60,MI034_S_B,MI,non-irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s76,MIC3058_S_B,MI,non-irrigated,irrigated/non-irrigated fields are more than a mile from each other
+s02,Dairy1_NI,MI,non-irrigated,"KBS dairy, long-term irrigation, pasture grass"
+s46,LTER_NI,MI,non-irrigated,"KBS LTER N gradient experiment, soy, long-term irrigation"
+s88,NE_NI,NR,non-irrigated,"NE LTAR, long-term irrigation experiment"

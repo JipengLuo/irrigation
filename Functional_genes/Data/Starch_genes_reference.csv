@@ -1,0 +1,28 @@
+﻿,Gene.name,Functions,KO,EC,KEGG level3,Classify,Original_EC_column_is_CAZy_family,EC_numbers_extracted_from_Functions,Suggested_functional_subcategory
+K00701,cgt,cyclomaltodextrin glucanotransferase,K00701,"GH13,CBM20",Starch and sucrose metabolism,Starch,"GH13,CBM20",,Direct starch / starch-derived alpha-glucan
+K00703,glgA,starch synthase [EC:2.4.1.21],K00703,GT5,Starch and sucrose metabolism,Starch,GT5,2.4.1.21,Direct starch / starch-derived alpha-glucan
+K00705,malQ,4-alpha-glucanotransferase [EC:2.4.1.25],K00705,GH77,Starch and sucrose metabolism,Starch,GH77,2.4.1.25,Direct starch / starch-derived alpha-glucan
+K00750,,glycogenin [EC:2.4.1.186],K00750,GT3,Starch and sucrose metabolism,Starch,GT3,2.4.1.186,Glycogen / starch-like storage alpha-glucan
+K00975,glgC,glucose-1-phosphate adenylyltransferase,K00975,,Starch and sucrose metabolism,Starch,,,Glycogen / starch-like storage alpha-glucan
+K01176,"AMY, amyA, malS",alpha-amylase [EC:3.2.1.1] (a-µí·ÛÃ¸),K01176,GH13,Starch and sucrose metabolism,Starch,GH13,3.2.1.1,Direct starch / starch-derived alpha-glucan
+K01177,,beta-amylase [EC:3.2.1.2],K01177,GH14,Starch and sucrose metabolism,Starch,GH14,3.2.1.2,Direct starch / starch-derived alpha-glucan
+K01182,"IMA, malL","oligo-1,6-glucosidase [EC:3.2.1.10]",K01182,GH13,Starch and sucrose metabolism,Starch,GH13,3.2.1.10,Direct starch / starch-derived alpha-glucan
+K01187,malZ,alpha-glucosidase,K01187,GH31,Starch and sucrose metabolism,Starch,GH31,,Direct starch / starch-derived alpha-glucan
+K01196,AGL,glycogen debranching enzyme [EC:2.4.1.25?3.2.1.33],K01196,GH13,Starch and sucrose metabolism,Starch,GH13,2.4.1.25; 3.2.1.33,Glycogen / starch-like storage alpha-glucan
+K01208,"cd, ma, nplT",cyclomaltodextrinase / maltogenic alpha-amylase / neopullulanase [EC:3.2.1.54?3.2.1.133?3.2.1.135],K01208,GH13,Starch and sucrose metabolism,Starch,GH13,3.2.1.54; 3.2.1.133; 3.2.1.135,Direct starch / starch-derived alpha-glucan
+K01214,"ISA, treX",isoamylase [EC:3.2.1.68],K01214,"GH13,CBM48",Starch and sucrose metabolism,Starch,"GH13,CBM48",3.2.1.68,Direct starch / starch-derived alpha-glucan
+K02438,glgX,glycogen debranching enzyme [EC:3.2.1.196],K02438,"GH13,CBM48",Starch and sucrose metabolism,Starch,"GH13,CBM48",3.2.1.196,Glycogen / starch-like storage alpha-glucan
+K05992,amyM,maltogenic alpha-amylase [EC:3.2.1.133],K05992,GH13,Starch and sucrose metabolism,Starch,GH13,3.2.1.133,Direct starch / starch-derived alpha-glucan
+K07405,,alpha-amylase [EC:3.2.1.1],K07405,GH57,Starch and sucrose metabolism,Starch,GH57,3.2.1.1,Direct starch / starch-derived alpha-glucan
+K11809,PGM2L1,"glucose-1,6-bisphosphate synthase [EC:2.7.1.106]",K11809,,Starch and sucrose metabolism,Starch,,2.7.1.106,Central sugar metabolism / precursor interconversion
+K13679,WAXY,granule-bound starch synthase [EC:2.4.1.242],K13679,GT5,Starch and sucrose metabolism,Starch,GT5,2.4.1.242,Direct starch / starch-derived alpha-glucan
+K16146,pep2,maltokinase [EC:2.7.1.175],K16146,,Starch and sucrose metabolism,Starch,,2.7.1.175,Glycogen / starch-like storage alpha-glucan
+K16147,glgE,starch synthase (maltosyl-transferring) [EC:2.4.99.16],K16147,GH13,Starch and sucrose metabolism,Starch,GH13,2.4.99.16,Glycogen / starch-like storage alpha-glucan
+K16148,glgM,alpha-maltose-1-phosphate synthase [EC:2.4.1.342],K16148,GT4,Starch and sucrose metabolism,Starch,GT4,2.4.1.342,Glycogen / starch-like storage alpha-glucan
+K16150,,glycogen synthase [EC:2.4.1.11],K16150,GT4,Starch and sucrose metabolism,Starch,GT4,2.4.1.11,Glycogen / starch-like storage alpha-glucan
+K16153,,glycogen phosphorylase/synthase [EC:2.4.1.1?2.4.1.11],K16153,"GT3,GT35",Starch and sucrose metabolism,Starch,"GT3,GT35",2.4.1.1; 2.4.1.11,Glycogen / starch-like storage alpha-glucan
+K20812,glgA,glycogen synthase [EC:2.4.1.242],K20812,GT5,Starch and sucrose metabolism,Starch,GT5,2.4.1.242,Glycogen / starch-like storage alpha-glucan
+K21574,susB,"glucan 1,4-alpha-glucosidase [EC:3.2.1.3]",K21574,GH97,Starch and sucrose metabolism,Starch,GH97,3.2.1.3,Direct starch / starch-derived alpha-glucan
+K22451,jgt,4-alpha-glucanotransferase [EC:2.4.1.25],K22451,GH57,Starch and sucrose metabolism,Starch,GH57,2.4.1.25,Direct starch / starch-derived alpha-glucan
+K01178,SGA1,Glucoamylase (ÆÏÌÇÌÇ»¯Ã¸£»ÆÏÌÇµí·ÛÃ¸)[EC:3.2.1.3],K01178,GH15,,Starch,GH15,3.2.1.3,Direct starch / starch-derived alpha-glucan
+K01200,pulA,Pullulanase(Ö§Á´µí·ÛÃ¸),K01200,"GH13,CBM48",,Starch,"GH13,CBM48",,Direct starch / starch-derived alpha-glucan

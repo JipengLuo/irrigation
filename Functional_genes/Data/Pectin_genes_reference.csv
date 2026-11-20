@@ -1,0 +1,22 @@
+,Gene.name,Functions,KO,EC,KEGG level3
+K01051,,pectinesterase/pectin methylesterase,K01051,,Pectin degradation
+K01184,,Polygalacturonase,K01184,,Pectin degradation
+K01213,,"galacturan 1,4-alpha-galacturonidase",K01213,GH28,Pectin degradation
+K01728,pel,Pectin Lyase,K01728,,(1->4)-alpha-D-galacturonan reducing-end-disaccharide-lyase
+K01731,pelW,pectate disaccharide-lyase,K01731,,(1->5)-alpha-D-galacturonan reducing-end-disaccharide-lyase
+K01732,,pectin lyase,K01732,,
+K12447,USP,UDP-sugar pyrophosphorylase,K12447,,Glucuronate pathway
+K14756,KL,klotho,K14756,GH1,Glucuronate pathway
+K15921, xynD,arabinoxylan arabinofuranohydrolase,K15921,CBM6?GH43,Amino sugar and nucleotide sugar metabolism
+K18195,"RGL4, rhiE",rhamnogalacturonan endolyase,K18195,PL4,
+K18197,yesW,rhamnogalacturonan endolyase,K18197,PL11,
+K18198,yesX,rhamnogalacturonan exolyase,K18198,PL11,
+K18580,RHGA,rhamnogalacturonan hydrolase,K18580,GH28,
+K19551,pelC,pectate lyase C,K19551,,(1->4)-alpha-D-galacturonan reducing-end-disaccharide-lyase
+K19634,gar1,D-galacturonate reductase,K19634,,
+K19642,GALUR,D-galacturonate reductase,K19642,,
+K20844,abf1,non-reducing end alpha-L-arabinofuranosidase,K20844,CBM42?GH54,Amino sugar and nucleotide sugar metabolism
+K22539,PLY,pectate lyase,K22539,,(1->4)-alpha-D-galacturonan reducing-end-disaccharide-lyase
+K22933,lplD,"galacturan 1,4-alpha-galacturonidase",K22933,GH4,
+K22994,pelX,pectate disaccharide-lyase,K22994,,(1->4)-alpha-D-galacturonan reducing-end-disaccharide-lyase
+0,PelA,pectate trisaccharide-lyase/pectate lyase A,,,

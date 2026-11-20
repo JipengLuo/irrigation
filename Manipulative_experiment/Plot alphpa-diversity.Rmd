@@ -1,0 +1,164 @@
+---
+title: "Violin plot of a-diversity"
+author: "Jipeng Luo"
+date: "2026-11-13"
+output: pdf_document
+---
+
+
+# Violin plot of a-diversity
+
+## Load packages and functions
+
+```{r}
+library(ggplot2)
+library(ggpubr)
+library(lmerTest)
+library(lme4)
+```
+
+# Import taxonomic a-diversity dataset
+
+```{r}
+design <- read.csv("./Alphadiversity/Data/Metadata_Irrigation.manipulative.exper.csv", header = T, row.names = 1)
+data1 <- read.csv("./Alphadiversity/Data/Species_alpha_diversity_Rarefied.csv", header = T, row.names = 1)
+data2 <- data1[rownames(design),]
+data <- cbind(design, data2) # merge design and a-diversity
+```
+
+
+# Plot taxonomic alpha-diversity
+
+```{r}
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+theme.plot <- theme(axis.title = element_text(colour = "black", size = 17),
+                    axis.text.x = element_text(colour= "black", size= 17, angle= 35, hjust = 1),
+                    axis.text.y = element_text(colour = "black", size = 17),
+                    legend.position = "NULL",
+                    panel.border = element_rect(color="black", size=1),
+                    panel.grid = element_blank())
+
+
+## Shannon 
+range(data$Shannon)
+theme_set(theme_bw())
+p1 <- ggplot(data, aes(x= Irrigation, y= Shannon, fill = Irrigation)) +
+  geom_violin(linewidth=0.5, size=0.2, alpha=0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Shannon") + 
+  scale_y_continuous(limits = c(7.51, 7.57), breaks =seq(7.51, 7.57, 0.02)) +
+  annotate("text", x = 1.5, y = 7.57, label = "P = 0.045", size = 6)
+
+p1
+ggsave("./Alphadiversity/Output/Shannon_taxonomic.pdf", p1, width = 3.5, height = 4)
+
+# Statistical analysis
+anova(lmer(Shannon ~ Irrigation + (1 | State), data = data))
+
+
+# Observed species
+range(data$S)
+theme_set(theme_bw())
+p2 <- ggplot(data, aes(x= Irrigation, y= S, fill= Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Richness") + 
+  scale_y_continuous(limits = c(6770, 7700), breaks = seq(6770, 7700, 500)) +
+  annotate("text", x = 1.5, y = 7700, label = "P = 0.295", size = 6)
+
+p2
+ggsave("./Alphadiversity/Output/Richness_taxonomic.pdf", p2, width = 3.5, height = 4)
+
+anova(lmer(S ~ Irrigation + (1 | State), data = data))
+
+
+## Pielou_evenness
+range(data$Pielou_evenness)
+theme_set(theme_bw())
+p3 <- ggplot(data, aes(x= Irrigation, y= Pielou_evenness, fill= Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha=0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Pielou evenness") + 
+  scale_y_continuous(limits = c(0.842, 0.855), breaks = seq(0.842, 0.855, 0.005)) +
+  annotate("text", x = 1.5, y = 0.855, label = "P = 0.049", size = 6)
+
+p3
+ggsave("./Alphadiversity/Output/Pielou_evenness_taxonomic.pdf", p3, width = 3.5, height = 4)
+
+anova(lmer(Pielou_evenness ~ Irrigation + (1 | State), data = data)) # F= 8.23, P = 0.008**
+
+```
+
+
+## Functional gene diversity
+
+```{r}
+design <- read.csv("./Alphadiversity/Data/Metadata_Irrigation.manipulative.exper.csv", header = T, row.names = 1)
+# Taxonomic a-diversity
+data1 <- read.csv("./Alphadiversity/Data/KOs_alpha_diveristy_Rarefied.csv", header = T, row.names = 1)
+data2 <- data1[rownames(design),]
+data <- cbind(design, data2) # merge design and a-diversity
+```
+
+
+# Plot Functional alpha-diversity
+
+```{r}
+## Shannon
+range(data$Shannon)
+theme_set(theme_bw())
+p4 <- ggplot(data, aes(x= Irrigation, y= Shannon, fill = Irrigation)) +
+  geom_violin(linewidth=0.5, size=0.2, alpha=0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  geom_jitter(size= 2, width = 0.07, alpha= 0.5) +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Shannon") + 
+  scale_y_continuous(limits = c(7.51, 7.57), breaks =seq(7.51, 7.57, 0.03)) +
+  annotate("text", x = 1.5, y = 7.57, label = "P = 0.356", size = 6)
+
+p4
+ggsave("./Alphadiversity/Output/Shannon_function.pdf", p4, width = 3.5, height = 4)
+
+anova(lmer(Shannon ~ Irrigation + (1 | State), data = data))
+
+
+## Observed species
+range(data$S)
+theme_set(theme_bw())
+p5 <- ggplot(data, aes(x= Irrigation, y= S, fill= Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  geom_jitter(size= 2, width = 0.07, alpha= 0.5) +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Richness") + 
+  scale_y_continuous(limits = c(6770, 7750), breaks = seq(6770, 7750, 500)) +
+  annotate("text", x = 1.5, y = 7750, label = "P = 0.514", size = 6)
+
+p5
+ggsave("./Alphadiversity/Output/Richness_function.pdf", p5, width = 3.5, height = 4)
+
+anova(lmer(S ~ Irrigation + (1 | State), data = data))
+
+
+## Pielou_evenness
+range(data$Pielou_evenness)
+theme_set(theme_bw())
+p6 <- ggplot(data, aes(x= Irrigation, y= Pielou_evenness, fill= Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha=0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.15, fill= "white") +
+  geom_jitter(size= 1.4, width = 0.07, alpha= 0.4) +
+  scale_fill_manual(values = colors) +
+  theme.plot + xlab(NULL) + ylab("Pielou evenness") + 
+  scale_y_continuous(limits = c(0.842, 0.855), breaks = seq(0.842, 0.855, 0.01)) +
+  annotate("text", x = 1.5, y = 0.855, label = "P = 0.911", size = 6)
+
+p6
+ggsave("./Alphadiversity/Output/Pielou evenness_function.pdf", p6, width = 3.5, height = 4)
+
+anova(lmer(Pielou_evenness ~ Irrigation + (1 | State), data = data)) # F=1.38, P=0.244
+```
+
+

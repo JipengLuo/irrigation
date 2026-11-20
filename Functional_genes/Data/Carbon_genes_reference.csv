@@ -1,0 +1,21 @@
+﻿,Gene.name,Functions,KO,EC,KEGG level3,Classify,Corrected_primary_category,Biochemical_role
+K00855,"PRK, prkB", phosphoribulokinase ,K00855,2.7.1.19,Carbon fixation by Calvin cycle ,Carbon fixation,CBB-specific key enzyme,Phosphoribulokinase: Ru5P to RuBP
+K01601,"rbcL, cbbL", ribulose-bisphosphate carboxylase large chain ,K01601,4.1.1.39,Carbon fixation by Calvin cycle ,Carbon fixation,CBB RuBisCO subunit,"RuBisCO large subunit, RuBP carboxylation"
+K01602,"rbcS, cbbS", ribulose-bisphosphate carboxylase small chain ,K01602,4.1.1.39,Carbon fixation by Calvin cycle ,Carbon fixation,CBB RuBisCO subunit,"RuBisCO small subunit, RuBP carboxylation complex"
+K00134,"GAPDH, gapA", glyceraldehyde 3-phosphate dehydrogenase (phosphorylating) ,K00134,1.2.1.12,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,GAPDH reduction/oxidation of triose phosphate
+K00150,"gap2, gapB", glyceraldehyde-3-phosphate dehydrogenase (NAD(P)+) (phosphorylating) ,K00150,1.2.1.59,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,GAPDH reduction/oxidation of triose phosphate
+K00615,"E2.2.1.1, tktA, tktB", transketolase ,K00615,2.2.1.1,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Transketolase / sugar-phosphate interconversion
+K00927,"PGK, pgk", phosphoglycerate kinase ,K00927,2.7.2.3,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Phosphoglycerate kinase
+K01086,fbp-SEBP," fructose-1,6-bisphosphatase I / sedoheptulose-1,7-bisphosphatase ",K01086,3.1.3.11 3.1.3.37,Carbon fixation by Calvin cycle ,Carbon fixation,"CBB regeneration, non-exclusive",FBPase / sedoheptulose-bisphosphatase
+K01100,E3.1.3.37, sedoheptulose-bisphosphatase ,K01100,3.1.3.37,Carbon fixation by Calvin cycle ,Carbon fixation,"CBB regeneration, non-exclusive","Sedoheptulose-1,7-bisphosphatase"
+K01623,ALDO," fructose-bisphosphate aldolase, class I ",K01623,4.1.2.13,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Fructose-bisphosphate aldolase class I
+K01624,"FBA, fbaA"," fructose-bisphosphate aldolase, class II ",K01624,4.1.2.13,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Fructose-bisphosphate aldolase class II
+K01783,"rpe, RPE", ribulose-phosphate 3-epimerase ,K01783,5.1.3.1,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Ribulose-phosphate epimerase
+K01803,"TPI, tpiA", triosephosphate isomerase (TIM) ,K01803,5.3.1.1,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Triosephosphate isomerase
+K01807,rpiA, ribose 5-phosphate isomerase A ,K01807,5.3.1.6,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Ribose-5-phosphate isomerase A
+K01808,rpiB, ribose 5-phosphate isomerase B ,K01808,5.3.1.6,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,Ribose-5-phosphate isomerase B
+K02446,glpX," fructose-1,6-bisphosphatase II ",K02446,3.1.3.11,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,"Fructose-1,6-bisphosphatase II"
+K03841,"FBP, fbp"," fructose-1,6-bisphosphatase I ",K03841,3.1.3.11,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,"Fructose-1,6-bisphosphatase I"
+K05298,GAPA, glyceraldehyde-3-phosphate dehydrogenase (NADP+) (phosphorylating) ,K05298,1.2.1.13,Carbon fixation by Calvin cycle ,Carbon fixation,Shared CBB cycle enzyme,NADP-dependent GAPDH
+K11532,glpX-SEBP," fructose-1,6-bisphosphatase II / sedoheptulose-1,7-bisphosphatase ",K11532,3.1.3.11 3.1.3.37,Carbon fixation by Calvin cycle ,Carbon fixation,"CBB regeneration, non-exclusive",FBPase / sedoheptulose-bisphosphatase
+K01595,ppc, phosphoenolpyruvate carboxylase ,K01595,4.1.1.31,Carbon fixation by Calvin cycle ,Carbon fixation,Anaplerotic inorganic-carbon incorporation,PEP + bicarbonate to oxaloacetate

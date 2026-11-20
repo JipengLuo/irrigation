@@ -1,0 +1,92 @@
+---
+title: "Differentially abundant genes in response to irrigation"
+author: "Jipeng Luo"
+date: "2026-11-20"
+output: pdf_document
+---
+
+## Differentially abundant genes in response to irrigation
+
+# Load packages
+```{r}
+library(DESeq2)
+library(GUniFrac)
+```
+
+# Perform gene differential abundance analysis
+
+```{r}
+metadata1 <- read.csv("./Data/Metadata.csv", header = T, row.names = 1)
+metadata <- subset(metadata1, Irrigation != 'NA')
+otutab1 <- read.csv("./Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1) # DESeq2 need taxa(rows) by samples(columns)
+head(otutab1)
+
+otutab2 <- otutab1[,rownames(metadata)]
+otutab <- otutab2[rowSums(otutab2)>0, ]
+
+identical(rownames(metadata), colnames(otutab))
+
+countData <- as(otutab, "matrix")  # convert the countData object to a matrix
+head(countData)
+str(countData)
+
+library(dplyr)
+countData.new <- round(countData, digits = 0)
+
+#construct the data object from matrix of counts and the metadata table
+dds <- DESeqDataSetFromMatrix(countData = countData.new,
+                              colData = metadata,
+                              design = ~ Irrigation)
+
+# filter the data
+dds <- dds[rowSums(counts(dds))>0,]
+dds
+dds <- estimateSizeFactors(dds) # Normalize the Count Data
+sizeFactors(dds)
+# Estimate the Dispersion
+dds <- estimateDispersions(dds)
+
+# local - use the locfit package to fit a local regression of log dispersions over log base mean 
+# (normal scale means and dispersions are input and output for dispersionFunction). 
+# mean - use the mean of gene-wise dispersion estimates
+dds <- DESeq(dds, fitType = 'local', parallel = FALSE)
+res <- results(dds)
+res <- results(dds, contrast = c("Irrigation", "irrigated","non-irrigated"))
+
+resOrdered <- res[order(res$padj), ]
+summary(res)
+summary(res$padj < 0.1, na.rm = TRUE)
+
+# Differentially abundant genes with adjusted P-values < 0.1
+diff_gene <- subset(res, padj < 0.1 & abs(log2FoldChange) > 0)
+table(res$padj < 0.1 & res$log2FoldChange > 0)
+
+res1 <- res[which(res$padj<0.01 & res$log2FoldChange)>1,]
+sum(res$padj<0.01 & abs(res$log2FoldChange)>1, na.rm = TRUE)
+write.csv(as.data.frame(diff_gene), file= "./Output/irrigated vs non-irragated_differentially.abundant.csv")
+write.csv(as.data.frame(res), file= "./Output/irrigated vs non-irragated_Comparison.csv")
+
+```
+
+
+# 2. Map differentially abundant genes to KEGG annotations
+
+```{r}
+library(dplyr)
+
+differ.gene <- read.csv("./Output/irrigated vs non-irragated_differentially.abundant.csv", header = T, row.names = 1)
+kegg <- read.csv("./Data/kegg.pathway.table.csv", header = T, row.names = 1)
+
+# extract rownames of differ.gene data
+differ.row <- rownames(differ.gene)
+
+# Match KO name in differ.gene data and KEGG table
+matched_idx <- match(differ.row, kegg$KO)
+
+# Match KO name in KEGG table
+kegg_matched <- data.frame(diff_gene, kegg[matched_idx, ])
+print(kegg_matched)
+
+write.csv(kegg_matched, file = "./Output/irrigated vs non-irragated_differentially.abundant.csv")
+```
+

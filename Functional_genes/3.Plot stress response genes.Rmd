@@ -1,0 +1,435 @@
+---
+title: "Plot stress response genes"
+author: "Jipeng Luo"
+date: "2026-11-20"
+output: pdf_document
+---
+
+## Plot stress response genes related to IAA synthase, osmolytes, heat shock protein, DNA repair,
+# peptidoglycan biosynthesis, osmotic stress, chemotaxis, biofilm formation, oxidative stress, motility
+
+
+# Obtain the relative abundance for differentially abundant genes
+# Calculate the mean relative abundance of each gene in irrigated and non-irrigated groups
+```{r}
+dd <- read.csv("./Output/Relative_abundance_percent_KO_count.csv", header = T, row.names = 1)
+dd <- dd[,rownames(design)]
+
+gene_means <- apply(dd, 1, function(x){
+  tapply(x, design$Irrigation, mean)
+})
+
+t(gene_means)[1:5, ]
+gene_means02 <- as.data.frame(t(gene_means))
+
+# There are 68 stress response genes in 'irrigated vs non-irragated_differentially.abundant.csv' files
+df <- read.csv("./Data/68_stress_response_genes.csv", header = T, row.names = 1)
+de <- gene_means02[rownames(df),]
+# rename
+colnames(de) <- c("mean.irr","mean.nonirr")
+dg <- cbind(df, de)
+
+# Up-regulated stress response gene in response to irrigation
+dh <- dg[dg$log2FoldChange > 0,]
+
+write.csv(dg, file = "./Output/68_differential_genes_Mean_Rel.abund.csv")
+
+# Export 43 upregulated stress response genes in response to irrigation
+write.csv(dh, file = "./Output/43_upregulated_stress_response_genes.csv")
+```
+
+
+# Sankey Plot the stress response pathways/modules enriched under irrigation
+
+# Load packages
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+```
+
+# Import data
+
+```{r}
+gene_file <- "./Output/43_upregulated_stress_response_genes.csv"
+gene_tab <- read_csv(gene_file, show_col_types = FALSE)
+
+# ============================================================
+# 1. Data structure
+#    First column：Treatment
+#    Second：Classify
+#    Flow width：mean.irr / mean.nonirr, refers to relative abundance
+# ============================================================
+
+sankey_df <- gene_tab %>%
+  mutate(
+    Classify = str_trim(as.character(Classify))
+  ) %>%
+  select(Classify, mean.irr, mean.nonirr) %>%
+  pivot_longer(
+    cols = c(mean.irr, mean.nonirr),
+    names_to = "mean_group",
+    values_to = "Abundance"
+  ) %>%
+  mutate(
+    Treatment = case_when(
+      mean_group == "mean.irr" ~ "irrigated",
+      mean_group == "mean.nonirr" ~ "non-irrigated"
+    ),
+    Abundance = as.numeric(Abundance)
+  ) %>%
+  filter(
+    !is.na(Treatment),
+    !is.na(Classify),
+    !is.na(Abundance),
+    Classify != "",
+    Abundance > 0
+  ) %>%
+  group_by(Treatment, Classify) %>%
+  summarise(
+    Abundance = sum(Abundance, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# ============================================================
+# 2. Set sort order
+
+treatment_order <- c("irrigated", "non-irrigated")
+
+class_order <- sankey_df %>%
+  group_by(Classify) %>%
+  summarise(total = sum(Abundance), .groups = "drop") %>%
+  arrange(desc(total)) %>%
+  pull(Classify)
+
+sankey_df <- sankey_df %>%
+  mutate(
+    Treatment = factor(Treatment, levels = treatment_order),
+    Classify = factor(Classify, levels = class_order) )
+
+# ============================================================
+# 3. Custom Function: Calculate Node Position
+#    node_gap_ratio: Control the spacing between the gray boxes
+# ============================================================
+
+total_abund <- sum(sankey_df$Abundance)
+
+node_gap_ratio <- 0.02
+node_gap <- total_abund * node_gap_ratio
+
+make_nodes <- function(node_total, axis_name, x_pos, gap, max_height) {
+  
+  node_total <- node_total %>%
+    arrange(order)
+  
+  n_node <- nrow(node_total)
+  axis_height <- sum(node_total$value) + gap * max(n_node - 1, 0)
+  offset <- (max_height - axis_height) / 2
+  
+  starts <- c(0, head(cumsum(node_total$value + gap), -1))
+  
+  node_total %>%
+    mutate(
+      axis = axis_name,
+      x = x_pos,
+      ymin = offset + starts,
+      ymax = offset + starts + value
+    )
+}
+
+# Treatment as the start node; Combines the total abundances from the two treatments
+treatment_total <- sankey_df %>%
+  group_by(node = Treatment) %>%
+  summarise(value = sum(Abundance), .groups = "drop") %>%
+  mutate(order = match(node, treatment_order))
+
+# Classify as the end node
+class_total <- sankey_df %>%
+  group_by(node = Classify) %>%
+  summarise(value = sum(Abundance), .groups = "drop") %>%
+  mutate(order = match(node, class_order))
+
+height_treatment <- sum(treatment_total$value) +
+  node_gap * max(nrow(treatment_total) - 1, 0)
+
+height_class <- sum(class_total$value) +
+  node_gap * max(nrow(class_total) - 1, 0)
+
+max_height <- max(height_treatment, height_class)
+
+nodes_treatment <- make_nodes(
+  treatment_total,
+  axis_name = "Treatment",
+  x_pos = 0,
+  gap = node_gap,
+  max_height = max_height
+)
+
+nodes_class <- make_nodes(
+  class_total,
+  axis_name = "Classify",
+  x_pos = 1,
+  gap = node_gap,
+  max_height = max_height
+)
+
+nodes_df <- bind_rows(nodes_treatment, nodes_class)
+
+
+# ============================================================
+# 4. Calculate the upper and lower bounds of each flow in the left and right nodes
+
+flow_df <- sankey_df %>%
+  left_join(
+    nodes_treatment %>%
+      select(Treatment = node, treat_ymin = ymin, treat_ymax = ymax),
+    by = "Treatment"
+  ) %>%
+  left_join(
+    nodes_class %>%
+      select(Classify = node, class_ymin = ymin, class_ymax = ymax),
+    by = "Classify"
+  )
+
+# The flow position inside the “Treatment” section on the left
+flow_df <- flow_df %>%
+  arrange(Treatment, Classify) %>%
+  group_by(Treatment) %>%
+  mutate(
+    src_ymin = dplyr::first(treat_ymin) + cumsum(dplyr::lag(Abundance, default = 0)),
+    src_ymax = src_ymin + Abundance
+  ) %>%
+  ungroup()
+
+# The position of the stream inside “Classify” on the right
+flow_df <- flow_df %>%
+  arrange(Classify, Treatment) %>%
+  group_by(Classify) %>%
+  mutate(
+    tgt_ymin = dplyr::first(class_ymin) + cumsum(dplyr::lag(Abundance, default = 0)),
+    tgt_ymax = tgt_ymin + Abundance
+  ) %>%
+  ungroup() %>%
+  mutate(flow_id = row_number())
+
+
+# ============================================================
+# 5. Generate Polygons with Smooth Streamlines
+
+node_width <- 0.12
+
+x_src <- 0 + node_width / 2
+x_tgt <- 1 - node_width / 2
+
+bezier_curve <- function(x0, y0, x1, y1, n = 80, curvature = 0.55) {
+  
+  t <- seq(0, 1, length.out = n)
+  
+  cx1 <- x0 + (x1 - x0) * curvature
+  cx2 <- x1 - (x1 - x0) * curvature
+  
+  x <- (1 - t)^3 * x0 +
+    3 * (1 - t)^2 * t * cx1 +
+    3 * (1 - t) * t^2 * cx2 +
+    t^3 * x1
+  
+  y <- (1 - t)^3 * y0 +
+    3 * (1 - t)^2 * t * y0 +
+    3 * (1 - t) * t^2 * y1 +
+    t^3 * y1
+  
+  data.frame(x = x, y = y)
+}
+
+poly_df <- do.call(
+  rbind,
+  lapply(seq_len(nrow(flow_df)), function(i) {
+    
+    r <- flow_df[i, ]
+    
+    upper <- bezier_curve(
+      x0 = x_src,
+      y0 = r$src_ymax,
+      x1 = x_tgt,
+      y1 = r$tgt_ymax
+    )
+    
+    lower <- bezier_curve(
+      x0 = x_tgt,
+      y0 = r$tgt_ymin,
+      x1 = x_src,
+      y1 = r$src_ymin
+    )
+    
+    poly <- bind_rows(upper, lower)
+    
+    poly$flow_id <- r$flow_id
+    poly$Treatment <- r$Treatment
+    poly$Classify <- r$Classify
+    
+    poly
+  })
+)
+```
+
+
+# 6. Sankey plot
+
+```{r}
+label_df <- nodes_df %>%
+  mutate(
+    label = case_when(
+      axis == "Treatment" ~ as.character(node),
+      axis == "Classify" ~ str_wrap(as.character(node), width = 18)
+    )
+  )
+
+
+# 6.1. Calculate log2 abundance ratios
+contrast_df <- sankey_df %>%
+  mutate(
+    Treatment = as.character(Treatment),
+    Classify = as.character(Classify)
+  ) %>%
+  pivot_wider(
+    names_from = Treatment,
+    values_from = Abundance,
+    values_fill = 0
+  ) %>%
+  mutate(
+    log2FC = if_else(
+      irrigated > 0 & `non-irrigated` > 0,
+      log2(irrigated / `non-irrigated`),
+      NA_real_
+    ),
+    FC_label = if_else(
+      is.na(log2FC),
+      "NA",
+      sprintf("%+.2f", log2FC)
+    )
+  )
+
+# 6.2. Right-side category labels
+class_labels <- nodes_class %>%
+  mutate(
+    Classify = as.character(node),
+    y_center = (ymin + ymax) / 2,
+    label = stringr::str_wrap(Classify, width = 22)
+  ) %>%
+  left_join(
+    contrast_df %>%
+      select(Classify, log2FC, FC_label),
+    by = "Classify"
+  )
+
+# 6.3. Left-side treatment labels
+treatment_labels <- nodes_treatment %>%
+  mutate(
+    label = as.character(node),
+    y_center = (ymin + ymax) / 2
+  )
+
+# 6.4. Sankey plot
+p1 <- ggplot() +
+  # Flow polygons
+  geom_polygon(data = poly_df, aes(x = x, y = y, group = flow_id, fill = Treatment), alpha = 0.7, color = NA) +
+  
+  # Left treatment nodes
+  geom_rect(data = nodes_treatment,
+  aes(
+      xmin = x - node_width / 2,
+      xmax = x + node_width / 2,
+      ymin = ymin,
+      ymax = ymax),
+    fill = "grey95",
+    color = "grey40",
+    linewidth = 0.35) +
+  
+  # Right nodes: colored sections for each treatment
+  geom_rect(data = flow_df,
+    aes(
+      xmin = x_tgt,
+      xmax = 1 + node_width / 2,
+      ymin = tgt_ymin,
+      ymax = tgt_ymax,
+      fill = Treatment),
+    color = "white",
+    linewidth = 0.35) +
+  
+  # Right category boundaries
+  geom_rect(data = nodes_class,
+    aes(
+      xmin = x - node_width / 2,
+      xmax = x + node_width / 2,
+      ymin = ymin,
+      ymax = ymax),
+    fill = NA,
+    color = "grey40",
+    linewidth = 0.35) +
+  
+  # Left labels
+  geom_text(data = treatment_labels, aes(x = x, y = y_center, label = label), size = 3.5, color = "black") +
+  
+  # Right category labels
+  geom_text(data = class_labels, aes(x= 1.10, y= y_center, label= label), 
+    hjust = 0, size = 3.4, lineheight = 0.9) +
+  
+  scale_fill_manual(values = c("irrigated" = "#4169B2", "non-irrigated" = "#BB2BA0")) +
+  scale_x_continuous(limits = c(-0.18, 2.02), expand = c(0, 0), breaks = NULL) +
+  labs(x = NULL, y = NULL,  fill = "Treatment") +
+  coord_cartesian(clip = "off") +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank(),
+    legend.position = "bottom",
+    panel.grid = element_blank(),
+    plot.margin = margin(25, 20, 15, 20))
+
+
+p1
+ggsave(filename = "./Output/Stress_response_gene_pathways_Sankey.pdf", p1, width = 6.5, height = 7)
+```
+
+
+# Plot the stress response genes enriched under irrigation
+
+```{r}
+library(ggplot2)
+library(cols4all)
+
+df <- read.csv("./Output/43_upregulated_stress_response_genes.csv", header = T, row.names = 1)
+colnames(df)
+df <- df[df$log2FoldChange > 0,]
+
+theme_set(theme_bw())
+p1 <- ggplot(df, aes(x = log2FoldChange, y = reorder(Gene.name,`log2FoldChange`), fill = `log2FoldChange`)) +
+  geom_col() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, colour = "black"),
+        legend.text = element_text(size = 12, colour = "black")) +
+  scale_x_continuous(limits = c(0, 0.64), breaks = seq(0, 0.64, 0.2))
+p1
+
+p2 <- ggplot(df, aes(x = `log2FoldChange`, y = reorder(Gene.name,`log2FoldChange`))) +
+  geom_col(width = 0.15, fill = 'black') +    # width of column
+  theme_classic() +
+  scale_x_continuous(limits = c(0, 0.64), breaks = seq(0, 0.64, 0.2)) +
+  theme(axis.text = element_text(size = 15, colour = "black"),
+        axis.title = element_text(size = 15, colour = "black"),
+        legend.text = element_text(size = 15, colour = "black")) + ylab("")
+
+p2
+
+p3 <- p2 + geom_point(aes(size = mean.irr, color = Classify)) +
+      scale_size_continuous(range = c(2, 8)) # bubble size
+
+p3
+ggsave("./Output/Stress_responses_genes.pdf", p3, width = 8, height = 8)
+```
+
+

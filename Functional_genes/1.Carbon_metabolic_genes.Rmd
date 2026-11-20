@@ -1,0 +1,192 @@
+---
+title: "Carbon_metabolic_genes"
+author: "Jipeng Luo"
+date: "2026-11-20"
+output: pdf_document
+---
+
+
+## Comparision of Carbon metabolic genes in irrigated and non-irrigated fields
+
+# Load packages
+
+```{r}
+library(stringr)
+library(dplyr)
+```
+
+# Obtain the abundance of genes related to different caron sources
+
+```{r}
+design <- read.csv("./Data/Metadata.csv", header = T, row.names = 1)
+abund.raw <- read.csv("./Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+abund.raw <- abund.raw[,rownames(design)]
+
+# Retrieve carbon metabolic genes according to their functional information in KEGG database, 
+# and then compare the relative abundance in irrigated and non-irrigate fields
+
+# Starch metabolic genes
+spec <- read.csv("./Data/Starch_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 599, p-value = 0.754
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+log2((2251-2254)/2251 + 1)  # -0.002
+
+
+# Hemicellulose metabolic genes
+spec <- read.csv("./Data/Hemicellulose_genes_referenc.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 759, p-value = 0.02741
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+log2((646-572)/646 + 1)  # 0.156
+
+
+# Cellulose metabolic genes
+spec <- read.csv("./Data/Cellulose_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 684, p-value = 0.1873
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((1293-1237)/1293 + 1)  # 0.061
+
+
+# Chitin metabolic genes
+spec <- read.csv("./Data/Chitin_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 699, p-value = 0.1346
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((350-318)/350 + 1)  # 0.126
+
+
+# Pectin metabolic genes
+spec <- read.csv("./Data/Pectin_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 745, p-value = 0.04135
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean) 
+log2((87-76)/87 + 1)   # 0.172
+
+
+# Aromatic metabolic genes
+spec <- read.csv("./Data/Aromatics_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 652, p-value = 0.3471
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((2969-2925)/2969 + 1)  # 0.021
+
+
+# Lignin metabolic genes
+spec <- read.csv("./Data/Lignin_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 745, p-value = 0.04135
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((3795-3860)/3795 + 1)   # -0.025
+
+
+# Carbon.fixation metabolic genes
+spec <- read.csv("./Data/Carbon_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 745, p-value = 0.04135
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((3602-3589)/3602 + 1)   # 0.005
+
+
+# Methane metabolic genes
+spec <- read.csv("./Data/Methane_genes_reference.csv", header = T, row.names = 1)
+gene <- abund.raw[rownames(abund.raw) %in% spec[,"KO"],]
+gene.sum <- apply(gene, 2, sum)
+gene2 <- data.frame(design, gene.sum)
+wilcox.test(gene.sum ~ Irrigation, paired = F, data = gene2) # W = 482, p-value = 0.2899
+# Mean value
+tapply(gene2$gene.sum, gene2$Irrigation, mean)
+# Fold change
+log2((882-915)/882 + 1)  #  -0.055
+
+```
+
+
+## Plot the abundance of carbon substrate degradation genes
+
+```{r}
+library(ggplot2)
+
+my_cols <- c(
+  "Starch" = "#C63300",
+  "Hemicellulose" = "#FF7744",
+  "Cellulose" = "#FFAA33",
+  "Chitin" = "#EEEE00",
+  "Pectin" = "#BBFF66",
+  "Aromatics" = "#00AA55",
+  "Lignin" = "#377eb8",
+  "C.fixation" = "#DDA0DD",
+  "Methane" = "#AFEEEE"
+)
+
+# The FoldChange values calculated above
+dx <- data.frame(substrate = c("Starch","Hemicellulose","Cellulose",
+                               "Chitin","Pectin","Aromatics","Lignin","C.fixation","Methane"),
+                 log2FoldChange = c(-0.002, 0.016, 0.061, 0.126, 0.172, 0.021, -0.025, 0.005, -0.055))
+  
+dx$substrate <- factor(dx$substrate, levels = c("Starch","Hemicellulose","Cellulose",
+                                              "Chitin","Pectin","Aromatics","Lignin","C.fixation","Methane"))
+theme_set(theme_bw())
+p <- ggplot(dx, aes(x= substrate, y= log2FoldChange)) + 
+  geom_bar(aes(fill = substrate), stat = "identity", color= "black") + xlab("") +
+  scale_fill_manual(values = my_cols) +
+  theme(axis.title = element_text(size = 16, colour = "black"),
+        axis.text.x = element_text(size = 17, colour = "black", angle = 35, hjust = 1),
+        axis.text.y = element_text(size = 17, colour = "black"),
+        panel.grid = element_blank()) +
+  ylim(-0.055, 0.21)
+
+p
+ggsave("./Output/Carbon_degradation_genes.pdf", p, width = 6.3, height = 4.7)
+```
+
+
+# Transform gene counts into relative abundance and export for subsequent analysis
+
+```{r}
+design <- read.csv("./Data/Metadata.csv", header = T, row.names = 1)
+abund.raw <- read.csv("./Data/RPKM.KO.abundance_9353.csv", header = T, row.names = 1)
+abund.raw <- abund.raw[,rownames(design)]
+
+# Transform into relative abundance within each sample
+rel_abundance <- prop.table(as.matrix(abund.raw), margin = 2)
+
+# percent
+rel_abundance_perc <- rel_abundance * 100
+print(rel_abundance_perc)
+
+write.csv(rel_abundance_perc, file = "./Output/Relative_abundance_percent_KO_count.csv")
+```
+
+
+

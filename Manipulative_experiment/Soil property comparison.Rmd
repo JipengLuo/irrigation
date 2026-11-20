@@ -1,0 +1,252 @@
+---
+title: "Soil property comparison"
+author: "Jipeng Luo"
+date: "2026-11-17"
+output: pdf_document
+---
+
+## Comparison of key soil properties between irrigated and non-irrigated fields
+
+# Load packages
+
+```{r}
+library(lmerTest)
+library(lme4)
+library(dplyr)
+library(ggplot2)
+```
+
+
+# Import soil property data
+
+```{r}
+metadata1 <- read.csv("./Soil_properties/Data/Metadata_Irrigation.manipulative.exper.csv", header = T,row.names = 1)
+env1 <- read.csv("./Soil_properties/Data/Vetted_soil_properties.csv", row.names = 1, header = T)
+metadata <- metadata1[rownames(metadata1) %in% rownames(env1),]
+env2 <- env1[rownames(metadata),]
+env <- cbind(metadata, env2)
+```
+
+# Plot soil property value in irrigated and non-irrigated fields
+
+```{r}
+# Surface moisture
+range(env$SM.M10)
+tapply(env$SM.M10, env$Irrigation, mean)
+p1 <- ggplot(data = env, aes(x = Irrigation, y = SM.M10, fill = Irrigation)) +
+geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +
+geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+scale_fill_manual(values = c("#4169B2", "#BB2BA0","gray")) +
+labs(x = "", y = "Suface moisture (m3/m3)") + 
+theme(
+      axis.text.x = element_text(size = 17, colour = "black"),
+      axis.text.y = element_text(size = 17, colour = "black"),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.position = "none") + 
+  coord_cartesian(ylim = c(0.2, 0.330))
+
+p1
+ggsave("./Soil_properties/Output/Surface moisture.pdf", p1, width = 4.5, height = 5)
+
+
+range(env$Silt)
+tapply(env$Silt, env$Irrigation, mean)
+p2 <- ggplot(data = env, aes(x = Irrigation, y = Silt, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) + 
+  labs(y = "Silt (%)", x = "") + ylim(0, 85) +
+  theme(
+        axis.text.x = element_text(size = 17, colour = "black"),
+        axis.text.y = element_text(size = 17, colour = "black"), 
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + coord_cartesian(ylim = c(13, 72))
+
+p2
+ggsave("./Soil_properties/Output/Silt.pdf", p2, width = 4.5, height = 5)
+
+
+range(env$Sand)
+tapply(env$Sand, env$Irrigation, mean)
+p3 <- ggplot(data = env, aes(x = Irrigation, y = Sand, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "Sand (%)", x = "") + ylim(0, 85) +
+  theme(axis.text.x = element_text(size = 17, colour = "black"),
+        axis.text.y = element_text(size = 17, colour = "black"), 
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + coord_cartesian(ylim = c(3.4, 83))
+
+p3
+ggsave("./Soil_properties/Output/Sand.pdf", p3, width = 4.5, height = 5)
+
+
+range(env$pH)
+tapply(env$pH, env$Irrigation, mean)
+p4 <- ggplot(data = env, aes(x = Irrigation, y = pH, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) + 
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "pH", x = "") + ylim(0, 7.5) +
+  theme(
+        axis.text.x = element_text(size = 17, colour = "black"),
+        axis.text.y = element_text(size = 17, colour = "black"), 
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + coord_cartesian(ylim = c(5.5, 7.1))
+p4
+ggsave("./Soil_properties/Output/Soil pH.pdf", p4, width = 4.5, height = 5)
+
+
+range(env$TC)
+tapply(env$TC, env$Irrigation, mean)
+p5 <- ggplot(data = env, aes(x = Irrigation, y = TC, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0","gray")) +
+  labs(y = "TC (Percent)", x = "") + ylim(0, 3.2) +
+  theme(
+        axis.text.x = element_text(size = 17, colour = "black"), 
+        axis.text.y = element_text(size = 17, colour = "black"),
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + coord_cartesian(ylim = c(0.65, 2.8))
+
+p5
+ggsave("./Soil_properties/Output/TC.pdf", p5, width = 5, height = 5.5)
+
+
+
+range(env$TN)
+tapply(env$TN, env$Irrigation, mean)
+p6 <- ggplot(data = env, aes(x = Irrigation, y = TN, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  labs(y = "TN (Percent)", x = "") + ylim(0, 0.32) +
+  theme(
+        axis.text.x = element_text(size = 17, colour = "black"), 
+        axis.text.y = element_text(size = 17, colour = "black"),
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + 
+  coord_cartesian(ylim = c(0.065, 0.30))
+
+p6
+ggsave("./Soil_properties/Output/TN.pdf", p6, width = 5, height = 5.5)
+
+
+range(env$CalcNRelease_N)
+tapply(env$CalcNRelease_N, env$Irrigation, mean) 
+p7 <- ggplot(data = env, aes(x = Irrigation, y = CalcNRelease_N, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  labs(y = "CalcNRelease_N_acre", x = "") + 
+  theme(
+        axis.text.x = element_text(size = 17, colour = "black"), 
+        axis.text.y = element_text(size = 17, colour = "black"),
+        axis.title.x = element_text(size = 17),
+        axis.title.y = element_text(size = 17),
+        legend.position = "NA") + coord_cartesian(ylim = c(45, 93))
+
+p7
+ggsave("./Soil_properties/Output/CalcNRelease_N.pdf", p7, width = 5, height = 5.5)
+
+
+range(env$Biomass)
+which(env$Biomass > 400)
+env.b <- env[-17,]
+tapply(env.b$Biomass, env.b$Irrigation, mean) 
+p8 <- ggplot(data = env.b, aes(x = Irrigation, y = Biomass, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.10, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0")) +  
+  labs(y = "Microbial biomass", x = "") + 
+  theme(
+    axis.text.x = element_text(size = 17, colour = "black"),
+    axis.text.y = element_text(size = 17, colour = "black"),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.position = "NA") +
+  scale_y_continuous(limits = c(0, 300), breaks = seq(0, 300, 95))
+
+p8
+ggsave("./Soil_properties/Output/Microbial biomass.pdf", p8, width = 3.5, height = 3.5)
+
+
+range(env$Fe.Zn_ratio)
+tapply(env$Fe.Zn_ratio, env$Irrigation, mean)
+p9 <- ggplot(data = env, aes(x = Irrigation, y = Fe.Zn_ratio, fill=Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) + 
+  labs(y = "Fe:Zn ratio", x = "") +
+  theme(
+    axis.text.x = element_text(size = 17, colour = "black"),
+    axis.text.y = element_text(size = 17, colour = "black"), 
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.position = "NA") + coord_cartesian(ylim = c(7.75, 120))
+
+p9
+ggsave("./Soil_properties/Output/Fe.Zn_ratio.pdf", p9, width = 3.5, height = 3.5)
+
+
+range(env$NDVI.2021)
+tapply(env$NDVI.2021, env$Irrigation, mean)
+p10 <- ggplot(data = env, aes(x = Irrigation, y = NDVI.2021, fill=Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.2, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0", "gray")) +
+  labs(y = "NDVI.2021", x = "") +
+  theme(
+    axis.text.x = element_text(size = 17, colour = "black"),
+    axis.text.y = element_text(size = 17, colour = "black"), 
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.position = "NA") + coord_cartesian(ylim = c(0.51, 0.84))
+
+p10
+ggsave("./Soil_properties/Output/NDVI.pdf", p10, width = 5, height = 5.5)
+
+
+range(env$Fe)
+tapply(env$Fe, env$Irrigation, mean)
+p11 <- ggplot(data = env, aes(x = Irrigation, y = Fe, fill = Irrigation)) +
+  geom_violin(linewidth= 0.5, size=0.1, alpha= 0.7) +  
+  geom_boxplot(alpha= 1, width= 0.17, fill= "white") +
+  scale_fill_manual(values = c("#4169B2",  "#BB2BA0")) +
+  labs(y = "Available Fe (mg/kg)", x = "") +
+  theme(
+    axis.text.x = element_text(size = 15, colour = "black"), 
+    axis.text.y = element_text(size = 15, colour = "black"), 
+    axis.title.x = element_text(size = 15, colour = "black"), 
+    axis.title.y = element_text(size = 15, colour = "black"),
+    legend.position = "none")  + ylim(90, 420)
+
+p11
+ggsave("./Soil_properties/Output/Fe.pdf", p11, width = 5, height = 5.5)
+```
+
+
+# Statistical test on the soil properties
+
+```{r}
+anova(lmer(SM.M10 ~ Irrigation + (1|State), data = env))
+anova(lmer(Silt ~ Irrigation + (1|State), data = env))
+anova(lmer(Sand ~ Irrigation + (1|State), data = env))
+anova(lmer(pH ~ Irrigation + (1|State), data = env))
+anova(lmer(TC ~ Irrigation + (1|State), data = env))
+anova(lmer(TN ~ Irrigation + (1|State), data = env))
+anova(lmer(CalcNRelease_N ~ Irrigation + (1|State), data = env))
+anova(lmer(Biomass ~ Irrigation + (1|State), data = env))
+anova(lmer(Fe.Zn_ratio ~ Irrigation + (1|State), data = env))
+anova(lmer(NDVI.2021 ~ Irrigation + (1|State), data = env))
+anova(lmer(Fe ~ Irrigation + (1|State), data = env))
+```
+

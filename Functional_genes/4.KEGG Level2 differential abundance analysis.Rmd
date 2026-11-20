@@ -1,0 +1,221 @@
+---
+title: "KEGG Level2 differential abundance analysis"
+author: "Jipeng Luo"
+date: "2026-11-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Perform differential abundance analysis of pathways at KEGG Level1, level2 and level3
+
+# 1. Aggregate abundant of pathways at KEGG level2
+
+# Load packages
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+# Import gene abundance data
+
+```{r}
+ko_abund <- read.csv("./Data/RPKM.KO.abundance_9353.csv", header = TRUE, check.names = FALSE)
+colnames(ko_abund)[1] <- "KO"
+
+# Annotation of each KO at Level1, Level2, Level3
+ko_anno <- read.csv("./Data/kegg_pathway_annotation_info.csv", header = TRUE, row.names = 1, stringsAsFactors = FALSE)
+
+# Extract KO column and rename the colname
+ko_anno <- ko_anno %>%
+  dplyr::rename(KO = 6) 
+
+# Merge two tables based on "KO" colname
+merged <- inner_join(ko_abund, ko_anno, by = "KO")
+colnames(merged)
+
+# -------- Level1 --------
+abund_L1 <- merged %>%
+  group_by(level1) %>%
+  summarise(across(where(is.numeric), sum), .groups = "drop")
+
+# -------- Level2 --------
+abund_L2 <- merged %>%
+  group_by(level1, level2) %>%
+  summarise(across(where(is.numeric), sum), .groups = "drop")
+abund_L2 <- abund_L2[,-1]
+
+# -------- Level3 --------
+abund_L3 <- merged %>%
+  group_by(level1, level2, level3) %>%
+  summarise(across(where(is.numeric), sum), .groups = "drop")
+abund_L3 <- abund_L3[,-c(1,2)]
+
+# Export
+write.csv(abund_L1, "./Output/KEGG_Level1_abundance.csv", quote = FALSE, row.names = FALSE)
+write.csv(abund_L2, "./Output/KEGG_Level2_abundance.csv", quote = T, row.names = FALSE)
+write.csv(abund_L3, "./Output/KEGG_Level3_abundance.csv", quote = T, row.names = FALSE)
+
+```
+
+
+# Perform differential abundance analysis on pathways at KEGG level2
+
+# Load packages
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(effsize)
+library(car)
+library(tidyverse)
+```
+
+# Since the following involves numerical calculations and the term “non-irrigated” contains a hyphen, we must use
+# “nonirrigated”; therefore, we are using the new metadata table
+
+```{r}
+design <- read.csv("./Data/Metadata for level2 differential abundance analysis.csv", header = T, row.names = 1)
+comm01 <- read.csv("./Output/KEGG_Level2_abundance.csv", header = T, row.names = 1)
+comm <- comm01[,rownames(design)]
+
+# Relative abundance
+comm <- sweep(comm, 2, colSums(comm), "/")
+
+# 1) Calculate mean / lower / upper
+
+# transform into long table
+df_long <- comm %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("Function") %>%
+  pivot_longer(-Function, names_to = "Sample", values_to = "Abundance")
+
+# merge data sets
+df_long <- df_long %>%
+  left_join(design %>% tibble::rownames_to_column("Sample"),
+            by = "Sample")
+
+
+# 2) Perform a Wilcoxon test for each function
+
+# no confidence intervals
+wilcox_res <- df_long %>%
+  group_by(Function) %>%
+  summarise(
+    estimate = mean(Abundance[Irrigation == "irrigated"]) -
+      mean(Abundance[Irrigation == "nonirrigated"]),
+    cliff_delta = effsize::cliff.delta(
+      Abundance[Irrigation == "irrigated"],
+      Abundance[Irrigation == "nonirrigated"]
+    )$estimate,
+    p_value = wilcox.test(Abundance ~ Irrigation, data = cur_data())$p.value,
+    .groups = "drop"
+  )
+
+# 3) Filter by Significant Features
+sig_res <- wilcox_res %>% filter(p_value < 0.05)
+
+# 4) Calculate the statistic
+summary_df <- df_long %>%
+  group_by(Function, Irrigation) %>%
+  summarise(
+    mean  = mean(Abundance, na.rm = TRUE),
+    sd    = sd(Abundance, na.rm = TRUE),
+    n     = n(),
+    se    = sd / sqrt(n),
+    lower = mean - se,
+    upper = mean + se,
+    .groups = "drop"
+  )
+
+# 5). Calculate “differences between groups”; # Convert to a wide table to make it easier to calculate the differences
+diff_df01 <- summary_df %>%
+  select(Function, Irrigation, mean, lower, upper) %>%
+  pivot_wider(names_from = Irrigation,
+              values_from = c(mean, lower, upper))
+
+colnames(diff_df01)
+# Calculate the difference（irrigated - non-irrigated）
+diff_df <- diff_df01 %>%
+  mutate(
+    estimate = mean_irrigated - mean_nonirrigated,
+    lower    = lower_irrigated - upper_nonirrigated,
+    upper    = upper_irrigated - lower_nonirrigated
+  )
+
+
+# Delete the “estimate” column from one of the two tables
+plot_df <- inner_join(wilcox_res, diff_df[,-8], by = "Function") # 删除两个表格中其中一个estimate列
+
+# Select the top 40 genes by absolute value of the estimate
+plot_df <- plot_df %>%
+  arrange(desc(abs(estimate))) %>%
+  slice(1:40)
+
+# Select the top 30 genes by absolute value of mean irrigated
+plot_df <- plot_df %>%
+  arrange(desc(abs(estimate))) %>%
+  slice(1:40)
+
+
+# Preparing the data for plot
+plot_df <- plot_df %>%
+  mutate(
+    Model = Function,
+    group = ifelse(estimate > 0, "irrigated", "non.irrigated")
+  )
+
+# reorder
+plot_df$Model <- factor(plot_df$Model, levels = rev(plot_df$Model))
+# Sort in descending order
+plot_df$Model <- factor(plot_df$Model,
+                        levels = plot_df$Model[order(plot_df$estimate)])
+# export statistics
+write.csv(plot_df, file = "./Output/KEGG_Level2_differential_abundance_analysis_results.csv")
+
+
+# Add significance labels
+plot_df <- plot_df %>%
+  mutate(
+    sig = case_when(
+      p_value < 0.001 ~ "***",
+      p_value < 0.01  ~ "**",
+      p_value < 0.05  ~ "*",
+      TRUE ~ ""
+    )
+  )
+
+
+#  Plot
+p1 <- ggplot(plot_df, aes(x = estimate, y = Model, color = group)) +
+  geom_segment(aes(x = lower, xend = upper, y = Model, yend = Model), linewidth = 0.8, alpha = 0.8) +
+  geom_point(size = 4, alpha = 0.8) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray60") +
+
+  # Add significance stars on right
+  geom_text(
+    aes(x = 0.00185, label = sig),
+    color = "black",
+    size = 7,
+    fontface = "bold",
+    hjust = 0.5,
+    show.legend = FALSE) +
+
+  scale_color_manual(values = c(irrigated = "#4169B2", non.irrigated = "#BB2BA0")) +
+  scale_x_continuous(limits = c(-0.0012, 0.002), breaks = seq(-0.0012, 0.002, 0.0005)) +
+  labs(x = "Effect size (Irrigated - Non-irrigated)", y = NULL) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 14, colour = "black"),
+    axis.text.x = element_text(size = 14, colour = "black"),
+    axis.title = element_text(size = 15, colour = "black")
+  )
+
+p1
+ggsave("./Output/KEGG leve2 differential abund_Irrigated abund top 40.pdf", p1, width = 10, height = 9)
+```
+

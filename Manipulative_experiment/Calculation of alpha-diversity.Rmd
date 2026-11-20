@@ -1,0 +1,184 @@
+---
+title: "Calculation of alpha-diversity"
+author: "Jipeng Luo"
+date: "2026-11-11"
+output: pdf_document
+---
+
+## Calculation of taxonomic and functional alpha-diversity
+
+## Load packages and functions
+```{r}
+library(vegan)
+library(dplyr)
+library(lmerTest)
+library(lme4)
+```
+
+
+# Rarefy abundance data to minimum sequencing depth
+
+```{r}
+design <- read.csv("Metadata.csv", row.names=1, header = T)
+head(design)
+# It is recommended to perform smoothing analysis using integer abundance data.
+spe1 <- read.csv("KOs.count.csv", row.names=1, header = T)
+spe1 <- read.csv("Species.count.csv", row.names=1, header = T)
+spe1[1:5,1:5]
+spe <- t(spe1[,rownames(design)]) %>% as.data.frame()
+spe <- spe[,colSums(spe)>0]
+
+# Observed species
+S.obs <- function(x = ""){
+  rowSums(x > 0) * 1
+}
+
+spe.S <- S.obs(spe)
+min.N <- min(rowSums(spe))  
+spe.int <- round(spe, 0)
+
+# Rarefaction
+rarefied <- rrarefy(spe.int, sample = min.N) 
+rowSums(rarefied)
+rarecurve(x = rarefied, step = 100, col = "blue", cex = 0.6, las = 1)
+abline(0, 1, col = 'red')             
+text(1500, 1500, "1:1", pos = 2, col = 'red')
+write.csv(rarefied, file = "Species.count_rarefied.csv")
+write.csv(rarefied, file = "KOs.count_rarefied.csv")
+```
+
+
+# Calculation of taxonomic alpha-diversity using rarefied abundance data
+
+```{r}
+# Import data
+design <- read.csv("Metadata.csv",row.names=1) 
+spe_trans <- read.csv("Species.count_rarefied.csv", header = T, row.names = 1)
+
+# Shannon
+Shannon <- diversity(spe_trans) 
+Shannon
+#write.csv(as.data.frame(Shannon), file="Shannon_rare_species.csv")
+
+# Within-group mean
+tapply(Shannon, design$Irrigation, mean)
+t.test(Shannon ~ Irrigation, data = design, var.equal = F)
+wilcox.test(Shannon ~ Irrigation, data = design)
+anova(lmer(Shannon ~ Irrigation + (1|State), data = design))
+
+
+# Simpson
+Inv_Simpson <- diversity(spe_trans, "inv")
+Inv_Simpson
+
+tapply(Inv_Simpson, design$Irrigation, mean)
+t.test(Inv_Simpson ~ Irrigation, data = design, var.equal = F)
+wilcox.test(Inv_Simpson ~ Irrigation, data = design)
+anova(lmer(Inv_Simpson ~ Irrigation + (1|State), data = design))
+
+
+# Richness
+S <- specnumber(spe_trans)
+S
+
+tapply(S, design$Irrigation, mean)
+t.test(S ~ Irrigation, data = design, var.equal = F) 
+wilcox.test(S ~ Irrigation, data = design)
+anova(lmer(S ~ Irrigation + (1|State), data = design))
+
+
+# Pielou_evenness
+Pielou_evenness <- Shannon/log(S)
+Pielou_evenness
+
+tapply(Pielou_evenness, design$Irrigation, mean) 
+t.test(Pielou_evenness ~ Irrigation, data = design, var.equal = F) 
+wilcox.test(Pielou_evenness ~ Irrigation, data = design)
+anova(lmer(Pielou_evenness ~ Irrigation + (1|State), data = design))
+
+
+# Simpson_evenness
+Simpson_evenness <- Inv_Simpson/S
+Simpson_evenness
+
+tapply(Simpson_evenness, design$Irrigation, mean) 
+t.test(Simpson_evenness ~ Irrigation, data = design)    
+wilcox.test(Simpson_evenness ~ Irrigation, data = design) 
+anova(lmer(Simpson_evenness ~ Irrigation + (1|State), data = design)) 
+
+
+# Export data
+report = cbind(Shannon, Inv_Simpson, S, Pielou_evenness, Simpson_evenness)
+head(report)
+write.csv(report, file = "Species_alpha_diveristy_Rarefied.csv")
+```
+
+
+# Calculation of functional alpha-diversity using rarefied abundance data
+
+```{r}
+# Import data
+design <- read.csv("Metadata.csv",row.names=1) 
+spe_trans <- read.csv("KOs.count_rarefied.csv", header = T, row.names = 1)
+
+# Shannon
+Shannon <- diversity(spe_trans) 
+Shannon
+#write.csv(as.data.frame(Shannon), file="Shannon_rare_species.csv")
+
+# Within-group mean
+tapply(Shannon, design$Irrigation, mean)
+t.test(Shannon ~ Irrigation, data = design, var.equal = F)
+wilcox.test(Shannon ~ Irrigation, data = design)
+anova(lmer(Shannon ~ Irrigation + (1|State), data = design))
+
+
+# Simpson
+Inv_Simpson <- diversity(spe_trans, "inv")
+Inv_Simpson
+
+tapply(Inv_Simpson, design$Irrigation, mean)
+t.test(Inv_Simpson ~ Irrigation, data = design, var.equal = F)
+wilcox.test(Inv_Simpson ~ Irrigation, data = design)
+anova(lmer(Inv_Simpson ~ Irrigation + (1|State), data = design))
+
+
+# Richness
+S <- specnumber(spe_trans)
+S
+
+tapply(S, design$Irrigation, mean)
+t.test(S ~ Irrigation, data = design, var.equal = F) 
+wilcox.test(S ~ Irrigation, data = design)
+anova(lmer(S ~ Irrigation + (1|State), data = design))
+
+
+# Pielou_evenness
+Pielou_evenness <- Shannon/log(S)
+Pielou_evenness
+
+tapply(Pielou_evenness, design$Irrigation, mean) 
+t.test(Pielou_evenness ~ Irrigation, data = design, var.equal = F) 
+wilcox.test(Pielou_evenness ~ Irrigation, data = design)
+anova(lmer(Pielou_evenness ~ Irrigation + (1|State), data = design))
+
+
+# Simpson_evenness
+Simpson_evenness <- Inv_Simpson/S
+Simpson_evenness
+
+tapply(Simpson_evenness, design$Irrigation, mean) 
+t.test(Simpson_evenness ~ Irrigation, data = design)    
+wilcox.test(Simpson_evenness ~ Irrigation, data = design) 
+anova(lmer(Simpson_evenness ~ Irrigation + (1|State), data = design)) 
+
+
+# Export data
+report = cbind(Shannon, Inv_Simpson, S, Pielou_evenness, Simpson_evenness)
+head(report)
+write.csv(report, file = "KOs_alpha_diveristy_Rarefied.csv")
+```
+
+
+
+

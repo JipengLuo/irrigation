@@ -1,0 +1,451 @@
+---
+title: "Homogenization of community"
+author: "Jipeng Luo"
+date: "2026-11-18"
+output: pdf_document
+---
+
+
+## R Markdown
+
+# Load packages
+```{r}
+library(vegan)
+```
+
+# 1. Calculate Bray-Curtis similarity for taxonomic communities
+
+```{r}
+design <- read.csv('./Homogenization_analysis/Data/Metadata_Irrigation.manipulative.exper.csv', header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# Taxonomy
+comm <- read.csv('./Homogenization_analysis/Data/Species.count.csv', header = T, row.names = 1)
+comm.irr <- comm[,rownames(design.irr)]
+comm.irr <- comm.irr[rowSums(comm.irr)>0,]
+comm.unirr <- comm[,rownames(design.unirr)]
+comm.unirr <- comm.unirr[rowSums(comm.unirr)>0,]
+
+# Calculate Bray-Curtis dissimilarity
+comm <- t(comm[,rownames(design)])
+dim(comm)
+bc_dist <- 1 - vegdist(comm, method = "bray")
+
+# As factor
+design$Irrigation <- as.factor(design$Irrigation)
+
+# Retrieve the “Irrigation” group
+groups <- design$Irrigation
+unique_groups <- levels(groups)
+
+# Initialize the results list
+bc_means <- numeric(length(unique_groups))
+names(bc_means) <- unique_groups
+
+# Calculate the mean Bray-Curtis distance within each group
+for (group in unique_groups) {
+  # Extract a sample from the current group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  # Extract the distance submatrix of samples within a group
+  if (length(group_samples) > 1) {    # Ensure that there are at least two samples in the group.
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    
+    # Remove only the triangular matrix (excluding the diagonal and duplicate values)
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    
+    # Mean value
+    bc_means[group] <- mean(group_dist_lower, na.rm = TRUE)
+  } else {
+    bc_means[group] <- NA
+  }
+}
+
+
+print(bc_means)
+# Bray:   irr, 0.674,   unirr, 0.581,  16% higher
+```
+
+
+# Plot taxonomic homogenization
+
+```{r}
+#  Initialize a data frame to store the distance values for all groups
+dist_data <- data.frame(Distance = numeric(), Irrigation = character())
+
+# Calculate the lower triangular distance for each group
+for (group in unique_groups) {
+  # Calculate the lower triangular distance for each group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  if (length(group_samples) > 1) {
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    group_dist_df <- data.frame(
+      Distance = group_dist_lower,
+      Irrigation = group
+    )
+    dist_data <- rbind(dist_data, group_dist_df)
+  }
+}
+
+head(dist_data)
+
+
+library(ggplot2)
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(dist_data$Distance)
+p1 <- ggplot(dist_data, aes(x = Irrigation, y = Distance, fill = Irrigation)) +
+  geom_violin(linewidth= 0.6, size= 0.3, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.13, fill= "white") +
+  geom_jitter(size= 2, width = 0.08, alpha= 0.5) +
+  labs(x = "", y = "Bray-Curtis similarity") +
+theme_bw() + scale_fill_manual(values = colors) +
+theme(axis.title = element_text(colour = "black", size = 21),
+      axis.text.x = element_blank(),
+      axis.text.y = element_text(colour = "black", size = 21),
+      legend.position = "none",
+      panel.border = element_rect(color="black", size=1),
+      panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5)) + 
+  ylim(0.289, 0.834) +
+  annotate("text", x = 1.5, y = 0.834, label = "P = 0.001", size = 8)
+
+p1
+ggsave("./Homogenization_analysis/Output/Taxonomic Homogenization_Bray-Curtis_Manipulative.pdf", p1, width = 4.7, height = 5)
+
+
+# Statistical test
+t.test(Distance ~ Irrigation, data = dist_data)  # t = 3.4238, df = 44.05, p-value = 0.001346
+```
+
+
+
+# 2. Calculate Bray-Curtis similarity for functional communities
+
+```{r}
+design <- read.csv('./Homogenization_analysis/Data/Metadata_Irrigation.manipulative.exper.csv', header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# Taxonomy
+comm <- read.csv('./Homogenization_analysis/Data/KOs.count.csv', header = T, row.names = 1)
+comm.irr <- comm[,rownames(design.irr)]
+comm.irr <- comm.irr[rowSums(comm.irr)>0,]
+comm.unirr <- comm[,rownames(design.unirr)]
+comm.unirr <- comm.unirr[rowSums(comm.unirr)>0,]
+
+# Calculate Bray-Curtis dissimilarity
+comm <- t(comm[,rownames(design)])
+dim(comm)
+bc_dist <- 1 - vegdist(comm, method = "bray")
+
+# As factor
+design$Irrigation <- as.factor(design$Irrigation)
+
+# Retrieve the “Irrigation” group
+groups <- design$Irrigation
+unique_groups <- levels(groups)
+
+# Initialize the results list
+bc_means <- numeric(length(unique_groups))
+names(bc_means) <- unique_groups
+
+# Calculate the mean Bray-Curtis distance within each group
+for (group in unique_groups) {
+  # Extract a sample from the current group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  # Extract the distance submatrix of samples within a group
+  if (length(group_samples) > 1) {    # Ensure that there are at least two samples in the group.
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    
+    # Remove only the triangular matrix (excluding the diagonal and duplicate values)
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    
+    # Mean value
+    bc_means[group] <- mean(group_dist_lower, na.rm = TRUE)
+  } else {
+    bc_means[group] <- NA
+  }
+}
+
+
+print(bc_means)
+# Bray:    irr, 0.830,   unirr, 0.736,  12.8% higher
+```
+
+
+# Plot functional homogenization
+
+```{r}
+#  Initialize a data frame to store the distance values for all groups
+dist_data <- data.frame(Distance = numeric(), Irrigation = character())
+
+# Calculate the lower triangular distance for each group
+for (group in unique_groups) {
+  # Calculate the lower triangular distance for each group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  if (length(group_samples) > 1) {
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    group_dist_df <- data.frame(
+      Distance = group_dist_lower,
+      Irrigation = group
+    )
+    dist_data <- rbind(dist_data, group_dist_df)
+  }
+}
+
+head(dist_data)
+
+
+library(ggplot2)
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(dist_data$Distance)
+p2 <- ggplot(dist_data, aes(x = Irrigation, y = Distance, fill = Irrigation)) +
+  geom_violin(linewidth= 0.6, size= 0.3, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.14, fill= "white") +
+  geom_jitter(size= 2, width = 0.08, alpha= 0.5) +
+  labs(x = "", y = "Bray-Curtis similarity") +
+theme_bw() + scale_fill_manual(values = colors) +
+theme(axis.title = element_text(colour = "black", size = 21),
+      axis.text.x = element_blank(),
+      axis.text.y = element_text(colour = "black", size = 21),
+      legend.position = "none",
+      panel.border = element_rect(color="black", size=1),
+      panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5)) + 
+  ylim(0.334, 0.956) +
+  annotate("text", x = 1.5, y = 0.956, label = "P = 0.005", size = 7)
+
+p2
+ggsave("./Homogenization_analysis/Output/Functional Homogenization_Bray-Curtis_Manipulative.pdf", p2, width = 4.7, height = 5)
+
+
+# Statistical test
+t.test(Distance ~ Irrigation, data = dist_data)  # t = 2.9137, df = 47.682, p-value = 0.005424
+```
+
+
+
+# 3. Calculate jaccard similarity for taxonomic communities
+
+```{r}
+design <- read.csv('./Homogenization_analysis/Data/Metadata_Irrigation.manipulative.exper.csv', header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# Taxonomy
+comm <- read.csv('./Homogenization_analysis/Data/Species.count.csv', header = T, row.names = 1)
+comm.irr <- comm[,rownames(design.irr)]
+comm.irr <- comm.irr[rowSums(comm.irr)>0,]
+comm.unirr <- comm[,rownames(design.unirr)]
+comm.unirr <- comm.unirr[rowSums(comm.unirr)>0,]
+
+# Calculate Bray-Curtis dissimilarity
+comm <- t(comm[,rownames(design)])
+dim(comm)
+bc_dist <- 1 - vegdist(comm, method = "jac", binary = F)
+
+# As factor
+design$Irrigation <- as.factor(design$Irrigation)
+
+# Retrieve the “Irrigation” group
+groups <- design$Irrigation
+unique_groups <- levels(groups)
+
+# Initialize the results list
+bc_means <- numeric(length(unique_groups))
+names(bc_means) <- unique_groups
+
+# Calculate the mean Bray-Curtis distance within each group
+for (group in unique_groups) {
+  # Extract a sample from the current group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  # Extract the distance submatrix of samples within a group
+  if (length(group_samples) > 1) {    # Ensure that there are at least two samples in the group.
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    
+    # Remove only the triangular matrix (excluding the diagonal and duplicate values)
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    
+    # Mean value
+    bc_means[group] <- mean(group_dist_lower, na.rm = TRUE)
+  } else {
+    bc_means[group] <- NA
+  }
+}
+
+
+print(bc_means)
+# Bray:   irr, 0.511,   unirr, 0.425,  20.2% higher
+```
+
+# Plot taxonomic homogenization
+
+```{r}
+#  Initialize a data frame to store the distance values for all groups
+dist_data <- data.frame(Distance = numeric(), Irrigation = character())
+
+# Calculate the lower triangular distance for each group
+for (group in unique_groups) {
+  # Calculate the lower triangular distance for each group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  if (length(group_samples) > 1) {
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    group_dist_df <- data.frame(
+      Distance = group_dist_lower,
+      Irrigation = group
+    )
+    dist_data <- rbind(dist_data, group_dist_df)
+  }
+}
+
+head(dist_data)
+
+
+library(ggplot2)
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(dist_data$Distance)
+p3 <- ggplot(dist_data, aes(x = Irrigation, y = Distance, fill = Irrigation)) +
+  geom_violin(linewidth= 0.6, size= 0.3, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.13, fill= "white") +
+  geom_jitter(size= 2, width = 0.08, alpha= 0.5) +
+  labs(x = "", y = "Bray-Curtis similarity") +
+theme_bw() + scale_fill_manual(values = colors) +
+theme(axis.title = element_text(colour = "black", size = 21),
+      axis.text.x = element_blank(),
+      axis.text.y = element_text(colour = "black", size = 21),
+      legend.position = "none",
+      panel.border = element_rect(color="black", size=1),
+      panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5)) + 
+  ylim(0.169, 0.72) +
+  annotate("text", x = 1.5, y = 0.72, label = "P = 0.003", size = 8)
+
+p3
+ggsave("./Homogenization_analysis/Output/Taxonomic Homogenization_Jaccard_Manipulative.pdf", p3, width = 4.7, height = 5)
+
+
+# Statistical test
+t.test(Distance ~ Irrigation, data = dist_data)  # t = 3.105, df = 46.433, p-value = 0.003239
+```
+
+
+
+# 4. Calculate jaccard similarity for functional communities
+
+```{r}
+design <- read.csv('./Homogenization_analysis/Data/Metadata_Irrigation.manipulative.exper.csv', header = T, row.names = 1)
+design.irr <- subset(design, Irrigation == "irrigated")
+design.unirr <- subset(design, Irrigation == "non-irrigated")
+
+# Taxonomy
+comm <- read.csv('./Homogenization_analysis/Data/KOs.count.csv', header = T, row.names = 1)
+comm.irr <- comm[,rownames(design.irr)]
+comm.irr <- comm.irr[rowSums(comm.irr)>0,]
+comm.unirr <- comm[,rownames(design.unirr)]
+comm.unirr <- comm.unirr[rowSums(comm.unirr)>0,]
+
+# Calculate Bray-Curtis dissimilarity
+comm <- t(comm[,rownames(design)])
+dim(comm)
+bc_dist <- 1 - vegdist(comm, method = "jac", binary = F)
+
+# As factor
+design$Irrigation <- as.factor(design$Irrigation)
+
+# Retrieve the “Irrigation” group
+groups <- design$Irrigation
+unique_groups <- levels(groups)
+
+# Initialize the results list
+bc_means <- numeric(length(unique_groups))
+names(bc_means) <- unique_groups
+
+# Calculate the mean Bray-Curtis distance within each group
+for (group in unique_groups) {
+  # Extract a sample from the current group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  # Extract the distance submatrix of samples within a group
+  if (length(group_samples) > 1) {    # Ensure that there are at least two samples in the group.
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    
+    # Remove only the triangular matrix (excluding the diagonal and duplicate values)
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    
+    # Mean value
+    bc_means[group] <- mean(group_dist_lower, na.rm = TRUE)
+  } else {
+    bc_means[group] <- NA
+  }
+}
+
+
+print(bc_means)
+# Bray:   irr, 0.718,   unirr, 0.610,  17.7% higher
+```
+
+# Plot functional homogenization
+
+```{r}
+#  Initialize a data frame to store the distance values for all groups
+dist_data <- data.frame(Distance = numeric(), Irrigation = character())
+
+# Calculate the lower triangular distance for each group
+for (group in unique_groups) {
+  # Calculate the lower triangular distance for each group
+  group_samples <- rownames(comm)[design$Irrigation == group]
+  
+  if (length(group_samples) > 1) {
+    group_dist <- as.matrix(bc_dist)[group_samples, group_samples]
+    group_dist_lower <- group_dist[lower.tri(group_dist)]
+    group_dist_df <- data.frame(
+      Distance = group_dist_lower,
+      Irrigation = group
+    )
+    dist_data <- rbind(dist_data, group_dist_df)
+  }
+}
+
+head(dist_data)
+
+
+library(ggplot2)
+colors <- c("irrigated"="#4169B2", "non-irrigated"="#BB2BA0")
+
+range(dist_data$Distance)
+p4 <- ggplot(dist_data, aes(x = Irrigation, y = Distance, fill = Irrigation)) +
+  geom_violin(linewidth= 0.6, size= 0.3, alpha= 0.7, color = "black") +
+  geom_boxplot(alpha= 1, width= 0.13, fill= "white") +
+  geom_jitter(size= 2, width = 0.08, alpha= 0.5) +
+  labs(x = "", y = "Bray-Curtis similarity") +
+theme_bw() + scale_fill_manual(values = colors) +
+theme(axis.title = element_text(colour = "black", size = 21),
+      axis.text.x = element_blank(),
+      axis.text.y = element_text(colour = "black", size = 21),
+      legend.position = "none",
+      panel.border = element_rect(color="black", size=1),
+      panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5)) + 
+  ylim(0.20, 0.896) +
+  annotate("text", x = 1.5, y = 0.896, label = "P = 0.008", size = 8)
+
+p4
+ggsave("./Homogenization_analysis/Output/Functional Homogenization_Jaccard_Manipulative.pdf", p4, width = 4.7, height = 5)
+
+
+# Statistical test
+t.test(Distance ~ Irrigation, data = dist_data)  # t = 2.776, df = 54.845, p-value = 0.007512
+```
+

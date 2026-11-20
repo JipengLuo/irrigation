@@ -1,0 +1,64 @@
+﻿,Gene.name,Functions,KO,EC,KEGG level3,Recommended_category,Functional_subcategory
+K00317,dmd-tmd,dimethylamine/trimethylamine dehydrogenase,K00317,1.5.8.1 1.5.8.2,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K08685,qhpA,quinohemoprotein amine dehydrogenase,K08685,1.4.9.1,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K15228,mauA,methylamine dehydrogenase light chain,K15228,1.4.9.1,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K15229,mauB,methylamine dehydrogenase heavy chain,K15229,1.4.9.1,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K18277,tmm,trimethylamine monooxygenase,K18277,1.14.13.148,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22081,mgsA,methylamine---glutamate N-methyltransferase subunit A,K22081,2.1.1.21,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22082,mgsB,methylamine---glutamate N-methyltransferase subunit B,K22082,2.1.1.21,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22083,mgsC,methylamine---glutamate N-methyltransferase subunit C,K22083,2.1.1.21,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22084,mgdA,methylglutamate dehydrogenase subunit A,K22084,1.5.99.5,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22085,mgdB,methylglutamate dehydrogenase subunit B,K22085,1.5.99.5,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22086,mgdC,methylglutamate dehydrogenase subunit C,K22086,1.5.99.5,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K22087,mgdD,methylglutamate dehydrogenase subunit D,K22087,1.5.99.5,Methane metabolism,Methylamine / C1 metabolism,Methylamine oxidation or methyl transfer
+K00200,"fwdA, fmdA",formylmethanofuran dehydrogenase subunit A,K00200,1.2.7.12,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00201,"fwdB, fmdB",formylmethanofuran dehydrogenase subunit B,K00201,1.2.7.12,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00202,"fwdC, fmdC",formylmethanofuran dehydrogenase subunit C,K00202,1.2.7.12,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00203,"fwdD, fmdD",formylmethanofuran dehydrogenase subunit D,K00203,1.2.7.12,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00204,fwdH,4Fe-4S ferredoxin,K00204,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00205,"fwdF, fmdF",4Fe-4S ferredoxin,K00205,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00319,mtd,methylenetetrahydromethanopterin dehydrogenase,K00319,1.5.98.1,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00320,mer,"5,10-methylenetetrahydromethanopterin reductase",K00320,1.5.98.2,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00399,mcrA,methyl-coenzyme M reductase alpha subunit,K00399,2.8.4.1,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K00400,K00400,"methyl coenzyme M reductase system, component A2",K00400,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K00401,mcrB,methyl-coenzyme M reductase beta subunit,K00401,2.8.4.1,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K00402,mcrG,methyl-coenzyme M reductase gamma subunit,K00402,2.8.4.1,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K00577,mtrA,tetrahydromethanopterin S-methyltransferase subunit A,K00577,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00578,mtrB,tetrahydromethanopterin S-methyltransferase subunit B,K00578,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00579,mtrC,tetrahydromethanopterin S-methyltransferase subunit C,K00579,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00580,mtrD,tetrahydromethanopterin S-methyltransferase subunit D,K00580,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00581,mtrE,tetrahydromethanopterin S-methyltransferase subunit E,K00581,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00582,mtrF,tetrahydromethanopterin S-methyltransferase subunit F,K00582,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00583,mtrG,tetrahydromethanopterin S-methyltransferase subunit G,K00583,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00584,mtrH,tetrahydromethanopterin S-methyltransferase subunit H,K00584,7.2.1.4,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K00672,ftr,formylmethanofuran--tetrahydromethanopterin N-formyltransferase,K00672,2.3.1.101,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K01499,mch,methenyltetrahydromethanopterin cyclohydrolase,K01499,3.5.4.27,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K03388,hdrA2,heterodisulfide reductase subunit A2,K03388,1.8.7.3 1.8.98.4 1.8.98.5 1.8.98.6,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K03389,hdrB2,heterodisulfide reductase subunit B2,K03389,1.8.7.3 1.8.98.4 1.8.98.5 1.8.98.6,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K03390,hdrC2,heterodisulfide reductase subunit C2,K03390,1.8.7.3 1.8.98.4 1.8.98.5 1.8.98.6,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K03421,mcrC,methyl-coenzyme M reductase subunit C,K03421,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K03422,mcrD,methyl-coenzyme M reductase subunit D,K03422,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,MCR methane-forming/oxidizing terminal complex
+K04480,mtaB,methanol---5-hydroxybenzimidazolylcobamide Co-methyltransferase,K04480,2.1.1.90,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K08264,hdrD,heterodisulfide reductase subunit D,K08264,1.8.98.1,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K08265,hdrE,heterodisulfide reductase subunit E,K08265,1.8.98.1,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K11260,fwdG,4Fe-4S ferredoxin,K11260,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K11261,"fwdE, fmdE",formylmethanofuran dehydrogenase subunit E,K11261,1.2.7.12,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K13942,hmd,"5,10-methenyltetrahydromethanopterin hydrogenase",K13942,1.12.98.2,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K14080,mtaA,[methyl-Co(III) methanol/glycine betaine-specific corrinoid protein]:coenzyme M methyltransferase,K14080,2.1.1.246 2.1.1.377,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K14081,mtaC,methanol corrinoid protein,K14081,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K14082,mtbA,[methyl-Co(III) methylamine-specific corrinoid protein]:coenzyme M methyltransferase,K14082,2.1.1.247,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K14083,mttB,trimethylamine---corrinoid protein Co-methyltransferase,K14083,2.1.1.250,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K14084,mttC,trimethylamine corrinoid protein,K14084,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K16176,mtmB,methylamine---corrinoid protein Co-methyltransferase,K16176,2.1.1.248,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K16177,mtmC,monomethylamine corrinoid protein,K16177,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K16178,mtbB,dimethylamine---corrinoid protein Co-methyltransferase,K16178,2.1.1.249,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K16179,mtbC,dimethylamine corrinoid protein,K16179,NA,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K22480,hdrA1,heterodisulfide reductase subunit A1,K22480,1.8.7.3,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K22481,hdrB1,heterodisulfide reductase subunit B1,K22481,1.8.7.3,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K22482,hdrC1,heterodisulfide reductase subunit C1,K22482,1.8.7.3,Methane metabolism,Methanogenesis / reverse methanogenesis,Methanogenesis pathway enzyme or electron-transfer component
+K16157,mmoX,methane monooxygenase component A alpha chain,K16157,1.14.13.25,Methane metabolism,Methane oxidation,sMMO complex
+K16158,mmoY,methane monooxygenase component A beta chain,K16158,1.14.13.25,Methane metabolism,Methane oxidation,sMMO complex
+K16159,mmoZ,methane monooxygenase component A gamma chain,K16159,1.14.13.25,Methane metabolism,Methane oxidation,sMMO complex
+K16160,mmoB,methane monooxygenase regulatory protein B,K16160,NA,Methane metabolism,Methane oxidation,sMMO complex
+K16161,mmoC,methane monooxygenase component C,K16161,1.14.13.25,Methane metabolism,Methane oxidation,sMMO complex
+K16162,mmoD,methane monooxygenase component D,K16162,NA,Methane metabolism,Methane oxidation,sMMO complex

@@ -1,0 +1,10 @@
+,Gene.name,Functions,KO,EC,KEGG level3,Classify
+K00694,,cellulose synthase (UDP-forming),K00694,,,
+K00702,,cellobiose phosphorylase,K00702,GT36,Vibrio lentus,Cellulose
+K01179,,endoglucanase,K01179,GH5?GH9,,Cellulose
+K01188,,¦Â-glucosidase/Cellobiase,K01188,,cellobiose glucohydrolase,Cellulose
+K05349,bglX,¦Â-glucosidase/Cellobiase,K05349,GH3,cellobiose glucohydrolase,Cellulose
+K05350,bglB,¦Â-glucosidase/Cellobiase,K05350,,cellobiose glucohydrolase,Cellulose
+K10999,CESA,cellulose synthase A,K10999,GT2,,Cellulose
+K19668,"CBH2, cbhA","cellulase 1,4-¦Â-cellobiosidase/exoglucanase",K19668,GH6,,Cellulose
+K20628,exlX,expansin EXLX1 family cellulose-binding protein,K20628,,,Cellulose
